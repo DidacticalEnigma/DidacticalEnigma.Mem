@@ -65,8 +65,6 @@ namespace DidacticalEnigma.Mem
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
-            
             app.UseSwagger(c =>
             {
                 c.SerializeAsV2 = true;

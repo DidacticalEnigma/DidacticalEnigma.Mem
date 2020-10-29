@@ -13,7 +13,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
     [Route("mem")]
     public class MemController : ControllerBase
     {
-        [SwaggerOperation("AddProject")]
+        [SwaggerOperation(OperationId = "AddProject")]
         [HttpPost("projects")]
         public async Task<ActionResult> AddProject(
             [FromQuery] string projectName,
@@ -24,7 +24,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             return Ok();
         }
         
-        [SwaggerOperation("Add")]
+        [SwaggerOperation(OperationId = "Add")]
         [HttpPost("translations")]
         public async Task<ActionResult<AddTranslationResult>> Add(
             [FromQuery] string projectName,
@@ -49,7 +49,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             return Ok(new AddTranslationResult());
         }
     
-        [SwaggerOperation("Query")]
+        [SwaggerOperation(OperationId = "Query")]
         [HttpGet("translations")]
         public async Task<ActionResult<QueryResult>> Query(
             [FromQuery] string? projectName,

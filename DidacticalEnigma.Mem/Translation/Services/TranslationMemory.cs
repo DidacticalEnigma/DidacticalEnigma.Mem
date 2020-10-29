@@ -128,7 +128,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             if (mediaType != null)
             {
                 mediaTypeModel = await this.dbContext.MediaTypes.FirstOrDefaultAsync(m => m.MediaType == mediaType);
-                if (mediaTypeModel != null)
+                if (mediaTypeModel == null)
                 {
                     throw new InvalidOperationException();
                 }
