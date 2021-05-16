@@ -25,5 +25,7 @@ namespace DidacticalEnigma.Mem.Translation.StoredModels
         public Context? Context { get; set; }
         
         public int ParentId { get; set; }
+        
+        public User Author { get; set; }
     }
 }

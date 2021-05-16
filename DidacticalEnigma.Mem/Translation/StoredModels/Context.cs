@@ -11,5 +11,7 @@ namespace DidacticalEnigma.Mem.Translation.StoredModels
         public byte[]? Content { get; set; }
         
         public AllowedMediaType? MediaType { get; set; }
+        
+        public User Author { get; set; }
     }
 }
