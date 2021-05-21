@@ -58,9 +58,6 @@ namespace DidacticalEnigma.Mem.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("AuthorId")
-                        .HasColumnType("uuid");
-
                     b.Property<byte[]>("Content")
                         .HasColumnType("bytea");
 
@@ -73,65 +70,9 @@ namespace DidacticalEnigma.Mem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AuthorId");
-
                     b.HasIndex("MediaTypeId");
 
                     b.ToTable("Contexts");
-                });
-
-            modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.Group", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-
-                    b.Property<bool>("CanAddContexts")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanAddProjects")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanDeleteContexts")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanDeleteProjects")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("GroupName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasAlternateKey("GroupName");
-
-                    b.ToTable("Groups");
-                });
-
-            modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.GroupProjectClaim", b =>
-                {
-                    b.Property<int>("GroupId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("CanAddTranslations")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanDeleteTranslations")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanReadTranslations")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("GroupId", "ProjectId");
-
-                    b.HasIndex("ProjectId");
-
-                    b.ToTable("GroupProjectClaims");
                 });
 
             modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.NpgsqlQuery", b =>
@@ -152,8 +93,8 @@ namespace DidacticalEnigma.Mem.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("character varying(128)")
-                        .HasMaxLength(128);
+                        .HasColumnType("character varying(32)")
+                        .HasMaxLength(32);
 
                     b.HasKey("Id");
 
@@ -167,9 +108,6 @@ namespace DidacticalEnigma.Mem.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AuthorId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ContextId")
@@ -199,8 +137,6 @@ namespace DidacticalEnigma.Mem.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AuthorId");
-
                     b.HasIndex("ContextId");
 
                     b.HasIndex("CorrelationId");
@@ -211,92 +147,15 @@ namespace DidacticalEnigma.Mem.Migrations
                     b.ToTable("TranslationPairs");
                 });
 
-            modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsSpecialUser")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("character varying(32)")
-                        .HasMaxLength(32);
-
-                    b.HasKey("Id");
-
-                    b.HasAlternateKey("Name");
-
-                    b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("32674391-9e28-422b-9dd7-3edefadb3417"),
-                            IsSpecialUser = true,
-                            Name = "<anonymous user>"
-                        },
-                        new
-                        {
-                            Id = new Guid("b97335bd-6670-414f-b7e7-c7be511b4a6c"),
-                            IsSpecialUser = true,
-                            Name = "<administrator>"
-                        });
-                });
-
-            modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.UserGroupMembership", b =>
-                {
-                    b.Property<int>("GroupId")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("GroupId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserGroupMemberships");
-                });
-
             modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.Context", b =>
                 {
-                    b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.User", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.AllowedMediaType", "MediaType")
                         .WithMany()
                         .HasForeignKey("MediaTypeId");
                 });
 
-            modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.GroupProjectClaim", b =>
-                {
-                    b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.Group", "Group")
-                        .WithMany("ProjectClaims")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.Translation", b =>
                 {
-                    b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.User", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.Context", "Context")
                         .WithMany()
                         .HasForeignKey("ContextId");
@@ -304,21 +163,6 @@ namespace DidacticalEnigma.Mem.Migrations
                     b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.Project", "Parent")
                         .WithMany("Translations")
                         .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("DidacticalEnigma.Mem.Translation.StoredModels.UserGroupMembership", b =>
-                {
-                    b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.Group", "Group")
-                        .WithMany("Users")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DidacticalEnigma.Mem.Translation.StoredModels.User", "User")
-                        .WithMany("Groups")
-                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
