@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Translation.IoModels;
@@ -58,6 +59,17 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.Query(projectName, correlationId, query);
+            
+            return Ok(result);
+        }
+        
+        [SwaggerOperation(OperationId = "GetContext")]
+        [HttpGet("contexts/{contextId}")]
+        public async Task<ActionResult<QueryResult>> GetContext(
+            [FromRoute] Guid contextId,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.GetContext(contextId);
             
             return Ok(result);
         }

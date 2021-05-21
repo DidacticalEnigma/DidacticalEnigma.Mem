@@ -16,6 +16,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
         Task AddContext(Guid id, byte[]? context, string? mediaType, string? text);
 
+        Task<QueryContextResult> GetContext(Guid id);
+        
         Task SaveChanges();
     }
 }

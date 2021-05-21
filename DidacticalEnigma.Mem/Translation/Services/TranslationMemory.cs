@@ -24,7 +24,11 @@ namespace DidacticalEnigma.Mem.Translation.Services
             this.analyzer = analyzer;
         }
 
-        public async Task<QueryResult> Query(string? projectName, string? correlationIdStart, string? queryText, int limit = 50)
+        public async Task<QueryResult> Query(
+            string? projectName,
+            string? correlationIdStart,
+            string? queryText,
+            int limit = 50)
         {
             if (projectName == null && correlationIdStart == null && queryText == null)
             {
@@ -51,7 +55,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         ParentName = translationPair.Parent.Name,
                         Source = translationPair.Source,
                         Target = translationPair.Target,
-                        CorrelationId = translationPair.CorrelationId
+                        CorrelationId = translationPair.CorrelationId,
+                        Context = translationPair.Context != null ? translationPair.Context.Id : (Guid?) null
                     })
                     .ToListAsync())
                 .Select(selection =>
@@ -64,9 +69,29 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         source: source,
                         target: selection.Target,
                         highlighterSequence: highlighter,
-                        correlationId: selection.CorrelationId);
+                        correlationId: selection.CorrelationId,
+                        context: selection.Context);
                 });
             return new QueryResult(results);
+        }
+
+        public async Task<QueryContextResult> GetContext(Guid id)
+        {
+            var contextData = await this.dbContext.Contexts
+                .Where(context => context.Id == id)
+                .Select(context => new {
+                    Content = context.Content,
+                    MediaType = context.MediaType != null ? context.MediaType.MediaType : null,
+                    Text = context.Text
+                })
+                .FirstOrDefaultAsync();
+
+            return new QueryContextResult()
+            {
+                Content = contextData.Content,
+                MediaType = contextData.MediaType,
+                Text = contextData.Text
+            };
         }
 
         public async Task AddProject(string projectName)
@@ -86,6 +111,11 @@ namespace DidacticalEnigma.Mem.Translation.Services
         public async Task AddTranslations(string projectName, IEnumerable<AddTranslation> translations)
         {
             var project = await this.dbContext.Projects.FirstAsync(p => p.Name == projectName);
+            if (project == null)
+            {
+                throw new InvalidOperationException();
+            }
+            
             foreach (var translation in translations)
             {
                 var model = new StoredModels.Translation()
@@ -94,7 +124,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
                     CorrelationId = translation.CorrelationId,
                     Parent = project,
                     Target = translation.Target,
-                    Source = translation.Source
+                    Source = translation.Source,
+                    ContextId = translation.Context
                 };
                 model.SearchVector = await this.dbContext.ToTsVector(analyzer.Normalize(translation.Source));
                 this.dbContext.TranslationPairs.Add(model);

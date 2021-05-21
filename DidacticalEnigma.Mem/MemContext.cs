@@ -53,7 +53,9 @@ namespace DidacticalEnigma.Mem
                 
                 translationPairBuilder
                     .HasOne(translationPair => translationPair.Context)
-                    .WithMany();
+                    .WithMany()
+                    .HasForeignKey(translationPair => translationPair.ContextId)
+                    .IsRequired(false);
                 
                 translationPairBuilder.HasIndex(translationPair => translationPair.CorrelationId);
                 translationPairBuilder.HasIndex(translationPair => new{translationPair.ParentId,translationPair.CorrelationId}).IsUnique();
