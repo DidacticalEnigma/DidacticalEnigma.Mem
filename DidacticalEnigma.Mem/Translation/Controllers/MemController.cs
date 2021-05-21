@@ -16,13 +16,13 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
     {
         [SwaggerOperation(OperationId = "AddProject")]
         [HttpPost("projects")]
-        public async Task<ActionResult> AddProject(
+        public async Task<ActionResult<AddProjectResult>> AddProject(
             [FromQuery] string projectName,
             [FromServices] ITranslationMemory translationMemory)
         {
-            await translationMemory.AddProject(projectName);
+            var result = await translationMemory.AddProject(projectName);
             await translationMemory.SaveChanges();
-            return Ok();
+            return Unwrap(result, new AddProjectResult());
         }
         
         [SwaggerOperation(OperationId = "Add")]
@@ -34,16 +34,24 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         {
             foreach (var addContext in request.Contexts ?? Enumerable.Empty<AddContext>())
             {
-                await translationMemory.AddContext(
+                var result = await translationMemory.AddContext(
                     addContext.Id,
                     addContext.Content,
                     addContext.MediaType,
                     addContext.Text);
+                if (result.Error != null)
+                {
+                    return Unwrap(result, new AddTranslationResult());
+                }
             }
 
             if (request.Translations != null)
             {
-                await translationMemory.AddTranslations(projectName, request.Translations);
+                var result = await translationMemory.AddTranslations(projectName, request.Translations);
+                if (result.Error != null)
+                {
+                    return Unwrap(result, new AddTranslationResult());
+                }
             }
             
             await translationMemory.SaveChanges();
@@ -60,18 +68,42 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         {
             var result = await translationMemory.Query(projectName, correlationId, query);
             
-            return Ok(result);
+            return Unwrap(result);
         }
         
         [SwaggerOperation(OperationId = "GetContext")]
         [HttpGet("contexts/{contextId}")]
-        public async Task<ActionResult<QueryResult>> GetContext(
+        public async Task<ActionResult<QueryContextResult>> GetContext(
             [FromRoute] Guid contextId,
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.GetContext(contextId);
             
-            return Ok(result);
+            return Unwrap(result);
+        }
+
+        private ActionResult<T> Unwrap<T>(Result<T> result)
+        {
+            if (result.Error == null)
+            {
+                return Ok(result.Value);
+            }
+            else
+            {
+                return this.StatusCode((int)result.Error.Code, result.Error);
+            }
+        }
+        
+        private ActionResult<T> Unwrap<T>(Result<Unit> result, T value)
+        {
+            if (result.Error == null)
+            {
+                return Ok(value);
+            }
+            else
+            {
+                return this.StatusCode((int)result.Error.Code, result.Error);
+            }
         }
     }
 }

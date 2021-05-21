@@ -8,15 +8,15 @@ namespace DidacticalEnigma.Mem.Translation.Services
 {
     public interface ITranslationMemory
     {
-        public Task<QueryResult> Query(string? projectName, string? correlationIdStart, string queryText, int limit = 50);
+        Task<Result<QueryResult>> Query(string? projectName, string? correlationIdStart, string queryText, int limit = 50);
 
-        Task AddProject(string projectName);
+        Task<Result<Unit>> AddProject(string projectName);
 
-        Task AddTranslations(string projectName, IEnumerable<AddTranslation> translations);
+        Task<Result<Unit>> AddTranslations(string projectName, IReadOnlyCollection<AddTranslation> translations);
 
-        Task AddContext(Guid id, byte[]? context, string? mediaType, string? text);
+        Task<Result<Unit>> AddContext(Guid id, byte[]? context, string? mediaType, string? text);
 
-        Task<QueryContextResult> GetContext(Guid id);
+        Task<Result<QueryContextResult>> GetContext(Guid id);
         
         Task SaveChanges();
     }

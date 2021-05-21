@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Translation.Extensions;
@@ -24,7 +25,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             this.analyzer = analyzer;
         }
 
-        public async Task<QueryResult> Query(
+        public async Task<Result<QueryResult>> Query(
             string? projectName,
             string? correlationIdStart,
             string? queryText,
@@ -32,7 +33,9 @@ namespace DidacticalEnigma.Mem.Translation.Services
         {
             if (projectName == null && correlationIdStart == null && queryText == null)
             {
-                throw new InvalidOperationException();
+                return Result<QueryResult>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "one of: projectName, correlationId, queryText must be provided");
             }
             limit = Math.Min(limit, 250);
             var translations = this.dbContext.TranslationPairs.AsQueryable();
@@ -72,10 +75,10 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         correlationId: selection.CorrelationId,
                         context: selection.Context);
                 });
-            return new QueryResult(results);
+            return Result<QueryResult>.Ok(new QueryResult(results));
         }
 
-        public async Task<QueryContextResult> GetContext(Guid id)
+        public async Task<Result<QueryContextResult>> GetContext(Guid id)
         {
             var contextData = await this.dbContext.Contexts
                 .Where(context => context.Id == id)
@@ -86,38 +89,67 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 })
                 .FirstOrDefaultAsync();
 
-            return new QueryContextResult()
+            if (contextData == null)
+            {
+                return Result<QueryContextResult>.Failure(
+                    HttpStatusCode.NotFound,
+                    "no context found with given id");
+            }
+            
+            return Result<QueryContextResult>.Ok(new QueryContextResult()
             {
                 Content = contextData.Content,
                 MediaType = contextData.MediaType,
                 Text = contextData.Text
-            };
+            });
         }
 
-        public async Task AddProject(string projectName)
+        public async Task<Result<Unit>> AddProject(string projectName)
         {
             var project = await this.dbContext.Projects.FirstOrDefaultAsync(p => p.Name == projectName);
             if (project != null)
             {
-                throw new InvalidOperationException();
+                return Result<Unit>.Failure(
+                    HttpStatusCode.Conflict,
+                    "project with a given name already exists");
             }
             project = new Project()
             {
                 Name = projectName
             };
             this.dbContext.Projects.Add(project);
+            return Result<Unit>.Ok(Unit.Value);
         }
 
-        public async Task AddTranslations(string projectName, IEnumerable<AddTranslation> translations)
+        public async Task<Result<Unit>> AddTranslations(string projectName, IReadOnlyCollection<AddTranslation> translations)
         {
             var project = await this.dbContext.Projects.FirstAsync(p => p.Name == projectName);
             if (project == null)
             {
-                throw new InvalidOperationException();
+                return Result<Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "no such project exists");
             }
+
+            var inputContextIdList = translations
+                .Select(translation => translation.Context)
+                .OfType<Guid>();
+
+            var validContextIds = (await this.dbContext.Contexts
+                    .Where(context => inputContextIdList.Contains(context.Id))
+                    .Select(context => context.Id)
+                    .ToListAsync())
+                .ToHashSet();
             
             foreach (var translation in translations)
             {
+                if (translation.Context != null &&
+                    !validContextIds.Contains(translation.Context.Value))
+                {
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.BadRequest,
+                        "the translation refers to non-existing context");
+                }
                 var model = new StoredModels.Translation()
                 {
                     Id = Guid.NewGuid(),
@@ -130,29 +162,38 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 model.SearchVector = await this.dbContext.ToTsVector(analyzer.Normalize(translation.Source));
                 this.dbContext.TranslationPairs.Add(model);
             }
+            return Result<Unit>.Ok(Unit.Value);
         }
 
-        public async Task AddContext(Guid id, byte[]? content, string? mediaType, string? text)
+        public async Task<Result<Unit>> AddContext(Guid id, byte[]? content, string? mediaType, string? text)
         {
             var context = await this.dbContext.Contexts.FindAsync(id);
             if (context != null)
             {
-                throw new InvalidOperationException();
+                return Result<Unit>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "request with such a guid exists");
             }
 
             if (text == null && mediaType == null && content == null)
             {
-                throw new InvalidOperationException();
+                return Result<Unit>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "either text or content (with its media type) must be specified");
             }
 
             if (content != null && mediaType == null)
             {
-                throw new InvalidOperationException();
+                return Result<Unit>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "if a request provides content, its media type must be specified");
             }
             
             if (content == null && mediaType != null)
             {
-                throw new InvalidOperationException();
+                return Result<Unit>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "no content provided");
             }
 
             AllowedMediaType? mediaTypeModel = null;
@@ -161,7 +202,9 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 mediaTypeModel = await this.dbContext.MediaTypes.FirstOrDefaultAsync(m => m.MediaType == mediaType);
                 if (mediaTypeModel == null)
                 {
-                    throw new InvalidOperationException();
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.BadRequest,
+                        "media type not acceptable");
                 }
             }
 
@@ -172,6 +215,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 MediaType = mediaTypeModel,
                 Text = text
             });
+            
+            return Result<Unit>.Ok(Unit.Value);
         }
 
         public async Task SaveChanges()
