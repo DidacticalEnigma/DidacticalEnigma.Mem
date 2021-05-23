@@ -121,6 +121,24 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             await translationMemory.SaveChanges();
             return Unwrap(result, new DeleteProjectResult());
         }
+        
+        [SwaggerOperation(OperationId = "UpdateTranslation")]
+        [HttpPatch("translations")]
+        public async Task<ActionResult<UpdateTranslationResult>> UpdateTranslation(
+            [FromQuery] string projectName,
+            [FromQuery] string correlationId,
+            [FromBody] UpdateTranslationParams request,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.UpdateTranslation(
+                projectName,
+                correlationId,
+                request.Source,
+                request.Target,
+                request.Context);
+            await translationMemory.SaveChanges();
+            return Unwrap(result, new UpdateTranslationResult());
+        }
 
         private ActionResult<T> Unwrap<T>(Result<T> result) where T : notnull
         {

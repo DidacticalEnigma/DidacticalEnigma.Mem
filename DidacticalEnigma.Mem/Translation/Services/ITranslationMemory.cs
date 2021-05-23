@@ -23,7 +23,14 @@ namespace DidacticalEnigma.Mem.Translation.Services
         Task<Result<Unit>> DeleteTranslation(string projectName, string correlationId);
         
         Task<Result<Unit>> DeleteProject(string projectName);
-        
+
+        Task<Result<Unit>> UpdateTranslation(
+            string projectName,
+            string correlationId,
+            string? source,
+            string? target,
+            Guid? context);
+
         Task SaveChanges();
     }
 }

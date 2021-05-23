@@ -157,6 +157,57 @@ namespace DidacticalEnigma.Mem.Translation.Services
             return Result<Unit>.Ok(Unit.Value);
         }
 
+        public async Task<Result<Unit>> UpdateTranslation(
+            string projectName,
+            string correlationId,
+            string? source,
+            string? target,
+            Guid? context)
+        {
+            var translation = await this.dbContext.TranslationPairs
+                .FirstOrDefaultAsync(t =>
+                    t.Parent.Name == projectName &&
+                    t.CorrelationId == correlationId);
+            
+            if (translation == null)
+            {
+                return Result<Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "translation not found");
+            }
+
+            var currentTime = this.currentTimeProvider.GetCurrentTime(); 
+            
+            if (source != null)
+            {
+                translation.Source = source;
+                translation.ModificationTime = currentTime;
+            }
+
+            if (target != null)
+            {
+                translation.Target = target;
+                translation.ModificationTime = currentTime;
+            }
+
+            if (context != null)
+            {
+                var contextExists = await this.dbContext.Contexts
+                    .AnyAsync(c => c.Id == context.Value);
+
+                if (!contextExists)
+                {
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.BadRequest,
+                        "attempt to set to non-existing context");
+                }
+                
+                translation.ContextId = context.Value;
+                translation.ModificationTime = currentTime;
+            }
+            return Result<Unit>.Ok(Unit.Value);
+        }
+
         public async Task<Result<Unit>> AddProject(string projectName)
         {
             var project = await this.dbContext.Projects.FirstOrDefaultAsync(
