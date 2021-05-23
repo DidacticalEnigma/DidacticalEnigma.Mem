@@ -43,7 +43,8 @@ namespace DidacticalEnigma.Mem.Authentication
             return Task.CompletedTask;
         }
 
-        protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
+        protected override async Task HandleRequirementAsync(
+            AuthorizationHandlerContext context,
             CompositeOrRequirement requirement)
         {
             foreach (var singleRequirement in requirement.Requirements)

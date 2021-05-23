@@ -72,7 +72,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
     
         [SwaggerOperation(OperationId = "Query")]
         [HttpGet("translations")]
-        [Authorize(Roles = "ReadTranslations")]
+        [Authorize("ReadTranslations")]
         public async Task<ActionResult<QueryResult>> Query(
             [FromQuery] string? projectName,
             [FromQuery] string? correlationId,
@@ -98,7 +98,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         
         [SwaggerOperation(OperationId = "DeleteContext")]
         [HttpDelete("contexts")]
-        [Authorize(Roles = "ModifyContexts")]
+        [Authorize("ModifyContexts")]
         public async Task<ActionResult<DeleteContextResult>> DeleteContext(
             [FromQuery] Guid id,
             [FromServices] ITranslationMemory translationMemory)
