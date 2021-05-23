@@ -2,7 +2,7 @@ using System;
 
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
-    public class AddTranslation
+    public class AddTranslationParams
     {
         public string Source { get; set; }
 

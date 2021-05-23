@@ -3,8 +3,8 @@ using DidacticalEnigma.Mem.Translation.StoredModels;
 
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
-    public class AddTranslations
+    public class AddTranslationsParams
     {
-        public IReadOnlyCollection<AddTranslation> Translations { get; set; }
+        public IReadOnlyCollection<AddTranslationParams> Translations { get; set; }
     }
 }

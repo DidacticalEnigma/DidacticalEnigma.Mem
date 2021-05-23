@@ -2,7 +2,7 @@ using System;
 
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
-    public class AddContext
+    public class AddContextParams
     {
         public Guid Id { get; set; }
         

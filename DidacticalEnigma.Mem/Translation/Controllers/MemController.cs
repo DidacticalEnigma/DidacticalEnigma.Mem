@@ -29,7 +29,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         [HttpPost("translations")]
         public async Task<ActionResult<AddTranslationsResult>> AddTranslations(
             [FromQuery] string projectName,
-            [FromBody] AddTranslations request,
+            [FromBody] AddTranslationsParams request,
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.AddTranslations(projectName, request.Translations);
@@ -45,10 +45,10 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         [SwaggerOperation(OperationId = "AddContexts")]
         [HttpPost("contexts")]
         public async Task<ActionResult<AddContextsResult>> AddContexts(
-            [FromBody] AddContexts request,
+            [FromBody] AddContextsParams request,
             [FromServices] ITranslationMemory translationMemory)
         {
-            foreach (var addContext in request.Contexts ?? Enumerable.Empty<AddContext>())
+            foreach (var addContext in request.Contexts ?? Enumerable.Empty<AddContextParams>())
             {
                 var result = await translationMemory.AddContext(
                     addContext.Id,
