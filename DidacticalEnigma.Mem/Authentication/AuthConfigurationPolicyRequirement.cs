@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace DidacticalEnigma.Mem.Authentication
 {
-    public class ConfigurationPolicyRequirement : IAuthorizationRequirement
+    public class AuthConfigurationPolicyRequirement : IAuthorizationRequirement
     {
         private readonly Predicate<AuthConfiguration> configCheck;
 
-        public ConfigurationPolicyRequirement(
+        public AuthConfigurationPolicyRequirement(
             Predicate<AuthConfiguration> configCheck)
         {
             this.configCheck = configCheck;

@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace DidacticalEnigma.Mem.Authentication
 {
-    public class HasPermissionRequirement : IAuthorizationRequirement
+    public class JwtPermissionRequirement : IAuthorizationRequirement
     {
         public string Permission { get; }
 
-        public HasPermissionRequirement(string permission)
+        public JwtPermissionRequirement(string permission)
         {
             Permission = permission ?? throw new ArgumentNullException(nameof(permission));
         }

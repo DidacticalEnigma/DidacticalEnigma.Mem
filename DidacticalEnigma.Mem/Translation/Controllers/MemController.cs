@@ -19,7 +19,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
     {
         [SwaggerOperation(OperationId = "AddProject")]
         [HttpPost("projects")]
-        [Authorize("modify:projects")]
+        [Authorize("ModifyProjects")]
         public async Task<ActionResult<AddProjectResult>> AddProject(
             [FromQuery] string projectName,
             [FromServices] ITranslationMemory translationMemory)
@@ -31,7 +31,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         
         [SwaggerOperation(OperationId = "AddTranslations")]
         [HttpPost("translations")]
-        [Authorize("modify:translations")]
+        [Authorize("ModifyTranslations")]
         public async Task<ActionResult<AddTranslationsResult>> AddTranslations(
             [FromQuery] string projectName,
             [FromBody] AddTranslationsParams request,
@@ -49,7 +49,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
 
         [SwaggerOperation(OperationId = "AddContexts")]
         [HttpPost("contexts")]
-        [Authorize("modify:contexts")]
+        [Authorize("ModifyContexts")]
         public async Task<ActionResult<AddContextsResult>> AddContexts(
             [FromBody] AddContextsParams request,
             [FromServices] ITranslationMemory translationMemory)
@@ -72,7 +72,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
     
         [SwaggerOperation(OperationId = "Query")]
         [HttpGet("translations")]
-        [Authorize("read:translations")]
+        [Authorize(Roles = "ReadTranslations")]
         public async Task<ActionResult<QueryResult>> Query(
             [FromQuery] string? projectName,
             [FromQuery] string? correlationId,
@@ -86,7 +86,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         
         [SwaggerOperation(OperationId = "GetContext")]
         [HttpGet("contexts")]
-        [Authorize("read:contexts")]
+        [Authorize("ReadContexts")]
         public async Task<ActionResult<QueryContextResult>> GetContext(
             [FromQuery] Guid id,
             [FromServices] ITranslationMemory translationMemory)
@@ -98,7 +98,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         
         [SwaggerOperation(OperationId = "DeleteContext")]
         [HttpDelete("contexts")]
-        [Authorize("modify:contexts")]
+        [Authorize(Roles = "ModifyContexts")]
         public async Task<ActionResult<DeleteContextResult>> DeleteContext(
             [FromQuery] Guid id,
             [FromServices] ITranslationMemory translationMemory)
@@ -110,7 +110,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         
         [SwaggerOperation(OperationId = "DeleteTranslation")]
         [HttpDelete("translations")]
-        [Authorize("modify:translations")]
+        [Authorize("ModifyTranslations")]
         public async Task<ActionResult<DeleteTranslationResult>> DeleteTranslation(
             [FromQuery] string projectName,
             [FromQuery] string correlationId,
@@ -123,7 +123,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         
         [SwaggerOperation(OperationId = "DeleteProject")]
         [HttpDelete("projects")]
-        [Authorize("modify:projects")]
+        [Authorize("ModifyProjects")]
         public async Task<ActionResult<DeleteProjectResult>> DeleteProject(
             [FromQuery] string projectName,
             [FromServices] ITranslationMemory translationMemory)
@@ -135,7 +135,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         
         [SwaggerOperation(OperationId = "UpdateTranslation")]
         [HttpPatch("translations")]
-        [Authorize("modify:translations")]
+        [Authorize("ModifyTranslations")]
         public async Task<ActionResult<UpdateTranslationResult>> UpdateTranslation(
             [FromQuery] string projectName,
             [FromQuery] string correlationId,

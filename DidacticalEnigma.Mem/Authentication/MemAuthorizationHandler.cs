@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace DidacticalEnigma.Mem.Authentication
 {
-    public class MemAuthorizationHandler : AuthorizationHandler<IAuthorizationRequirement>
+    public class MemAuthorizationHandler : AuthorizationHandler<CompositeOrRequirement>
     {
         private readonly AuthConfiguration authConfiguration;
 
@@ -16,21 +16,20 @@ namespace DidacticalEnigma.Mem.Authentication
         {
             this.authConfiguration = authConfiguration.Value;
         }
-        
-        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, IAuthorizationRequirement requirement)
+
+        private Task HandleRequirementAsync(AuthorizationHandlerContext context,
+            AuthConfigurationPolicyRequirement requirement, CompositeOrRequirement compositeOrRequirement)
         {
-            switch (requirement)
+            if (requirement.SatisfiesCheck(authConfiguration))
             {
-                case HasPermissionRequirement scopeRequirement:
-                    return HandleRequirementImplAsync(context, scopeRequirement);
-                case ConfigurationPolicyRequirement configurationPolicyRequirement:
-                    return HandleRequirementImplAsync(context, configurationPolicyRequirement);
+                context.Succeed(compositeOrRequirement);
             }
-            
-            throw new NotImplementedException();
+
+            return Task.CompletedTask;
         }
-        
-        private Task HandleRequirementImplAsync(AuthorizationHandlerContext context, HasPermissionRequirement requirement)
+
+        private Task HandleRequirementAsync(AuthorizationHandlerContext context, JwtPermissionRequirement requirement,
+            CompositeOrRequirement compositeOrRequirement)
         {
             var issuer = authConfiguration.Authority;
 
@@ -39,19 +38,28 @@ namespace DidacticalEnigma.Mem.Authentication
 
             // Succeed if the scope array contains the required scope
             if (scopes.Any(s => s.Value == requirement.Permission))
-                context.Succeed(requirement);
+                context.Succeed(compositeOrRequirement);
 
             return Task.CompletedTask;
         }
-        
-        private Task HandleRequirementImplAsync(AuthorizationHandlerContext context, ConfigurationPolicyRequirement requirement)
+
+        protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
+            CompositeOrRequirement requirement)
         {
-            if (requirement.SatisfiesCheck(authConfiguration))
+            foreach (var singleRequirement in requirement.Requirements)
             {
-                context.Succeed(requirement);
+                switch (singleRequirement)
+                {
+                    case JwtPermissionRequirement jwtPermissionRequirement:
+                        await HandleRequirementAsync(context, jwtPermissionRequirement, requirement);
+                        break;
+                    case AuthConfigurationPolicyRequirement authConfigurationPolicyRequirement:
+                        await HandleRequirementAsync(context, authConfigurationPolicyRequirement, requirement);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
             }
-            
-            return Task.CompletedTask;
         }
     }
 }

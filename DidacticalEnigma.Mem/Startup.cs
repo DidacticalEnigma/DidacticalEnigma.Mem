@@ -87,40 +87,47 @@ namespace DidacticalEnigma.Mem
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(
-                    "read:translations",
+                    "ReadTranslations",
                     policy =>
-                    {
-                        policy.Requirements.Add(new HasPermissionRequirement("read:translations"));
-                        policy.Requirements.Add(new ConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadTranslations));
-                    });
+                        policy.Requirements.Add(
+                            new CompositeOrRequirement(
+                                new JwtPermissionRequirement("read:translations"),
+                                new AuthConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadTranslations))));
                 
                 options.AddPolicy(
-                    "read:listOfProjects",
+                    "EnumerateProjects",
                     policy =>
-                        policy.Requirements.Add(new HasPermissionRequirement("read:listOfProjects")));
+                        policy.Requirements.Add(
+                            new CompositeOrRequirement(
+                                new JwtPermissionRequirement("read:listOfProjects"))));
                 
                 options.AddPolicy(
-                    "modify:translations",
+                    "ModifyTranslations",
                     policy =>
-                        policy.Requirements.Add(new HasPermissionRequirement("modify:translations")));
+                        policy.Requirements.Add(
+                            new CompositeOrRequirement(
+                                new JwtPermissionRequirement("modify:translations"))));
                 
                 options.AddPolicy(
-                    "modify:projects",
+                    "ModifyProjects",
                     policy =>
-                        policy.Requirements.Add(new HasPermissionRequirement("modify:projects")));
+                        policy.Requirements.Add(
+                            new CompositeOrRequirement(
+                                new JwtPermissionRequirement("modify:projects"))));
                 
                 options.AddPolicy(
-                    "modify:contexts",
+                    "ModifyContexts",
                     policy =>
-                        policy.Requirements.Add(new HasPermissionRequirement("modify:contexts")));
+                        policy.Requirements.Add(
+                            new CompositeOrRequirement(
+                                new JwtPermissionRequirement("modify:contexts"))));
                 
                 options.AddPolicy(
-                    "read:contexts",
-                    policy =>
-                    {
-                        policy.Requirements.Add(new HasPermissionRequirement("read:contexts"));
-                        policy.Requirements.Add(new ConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadContexts));
-                    });
+                    "ReadContexts",
+                    policy => policy.Requirements.Add(
+                        new CompositeOrRequirement(
+                            new JwtPermissionRequirement("read:contexts"),
+                            new AuthConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadContexts))));
             });
             
             services
