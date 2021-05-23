@@ -25,11 +25,27 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             return Unwrap(result, new AddProjectResult());
         }
         
-        [SwaggerOperation(OperationId = "Add")]
+        [SwaggerOperation(OperationId = "AddTranslations")]
         [HttpPost("translations")]
-        public async Task<ActionResult<AddTranslationResult>> Add(
+        public async Task<ActionResult<AddTranslationsResult>> AddTranslations(
             [FromQuery] string projectName,
             [FromBody] AddTranslations request,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.AddTranslations(projectName, request.Translations);
+            if (result.Error != null)
+            {
+                return Unwrap(result, new AddTranslationsResult());
+            }
+
+            await translationMemory.SaveChanges();
+            return Ok(new AddTranslationsResult());
+        }
+
+        [SwaggerOperation(OperationId = "AddContexts")]
+        [HttpPost("contexts")]
+        public async Task<ActionResult<AddContextsResult>> AddContexts(
+            [FromBody] AddContexts request,
             [FromServices] ITranslationMemory translationMemory)
         {
             foreach (var addContext in request.Contexts ?? Enumerable.Empty<AddContext>())
@@ -41,21 +57,11 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
                     addContext.Text);
                 if (result.Error != null)
                 {
-                    return Unwrap(result, new AddTranslationResult());
+                    return Unwrap(result, new AddContextsResult());
                 }
             }
-
-            if (request.Translations != null)
-            {
-                var result = await translationMemory.AddTranslations(projectName, request.Translations);
-                if (result.Error != null)
-                {
-                    return Unwrap(result, new AddTranslationResult());
-                }
-            }
-            
             await translationMemory.SaveChanges();
-            return Ok(new AddTranslationResult());
+            return Ok(new AddContextsResult());
         }
     
         [SwaggerOperation(OperationId = "Query")]
@@ -72,17 +78,51 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         }
         
         [SwaggerOperation(OperationId = "GetContext")]
-        [HttpGet("contexts/{contextId}")]
+        [HttpGet("contexts")]
         public async Task<ActionResult<QueryContextResult>> GetContext(
-            [FromRoute] Guid contextId,
+            [FromQuery] Guid id,
             [FromServices] ITranslationMemory translationMemory)
         {
-            var result = await translationMemory.GetContext(contextId);
+            var result = await translationMemory.GetContext(id);
             
             return Unwrap(result);
         }
+        
+        [SwaggerOperation(OperationId = "DeleteContext")]
+        [HttpDelete("contexts")]
+        public async Task<ActionResult<DeleteContextResult>> DeleteContext(
+            [FromQuery] Guid id,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.DeleteContext(id);
+            await translationMemory.SaveChanges();
+            return Unwrap(result, new DeleteContextResult());
+        }
+        
+        [SwaggerOperation(OperationId = "DeleteTranslation")]
+        [HttpDelete("translations")]
+        public async Task<ActionResult<DeleteTranslationResult>> DeleteTranslation(
+            [FromQuery] string projectName,
+            [FromQuery] string correlationId,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.DeleteTranslation(projectName, correlationId);
+            await translationMemory.SaveChanges();
+            return Unwrap(result, new DeleteTranslationResult());
+        }
+        
+        [SwaggerOperation(OperationId = "DeleteProject")]
+        [HttpDelete("projects")]
+        public async Task<ActionResult<DeleteProjectResult>> DeleteProject(
+            [FromQuery] string projectName,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.DeleteProject(projectName);
+            await translationMemory.SaveChanges();
+            return Unwrap(result, new DeleteProjectResult());
+        }
 
-        private ActionResult<T> Unwrap<T>(Result<T> result)
+        private ActionResult<T> Unwrap<T>(Result<T> result) where T : notnull
         {
             if (result.Error == null)
             {

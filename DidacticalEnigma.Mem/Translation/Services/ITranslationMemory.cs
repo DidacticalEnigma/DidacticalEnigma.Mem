@@ -17,6 +17,12 @@ namespace DidacticalEnigma.Mem.Translation.Services
         Task<Result<Unit>> AddContext(Guid id, byte[]? context, string? mediaType, string? text);
 
         Task<Result<QueryContextResult>> GetContext(Guid id);
+
+        Task<Result<Unit>> DeleteContext(Guid id);
+
+        Task<Result<Unit>> DeleteTranslation(string projectName, string correlationId);
+        
+        Task<Result<Unit>> DeleteProject(string projectName);
         
         Task SaveChanges();
     }

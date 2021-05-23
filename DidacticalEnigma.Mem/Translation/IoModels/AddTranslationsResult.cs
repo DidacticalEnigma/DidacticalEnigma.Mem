@@ -1,6 +1,6 @@
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
-    public class AddTranslationResult
+    public class AddTranslationsResult
     {
     }
 }

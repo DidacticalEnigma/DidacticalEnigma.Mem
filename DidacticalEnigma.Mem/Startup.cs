@@ -51,6 +51,8 @@ namespace DidacticalEnigma.Mem
                 DicDir = mecabConfiguration.PathToDictionary
             }));
 
+            services.AddSingleton<ICurrentTimeProvider, CurrentTimeProvider>();
+
             services.AddScoped<ITranslationMemory, TranslationMemory>();
             
             services.AddDbContext<MemContext>(options =>

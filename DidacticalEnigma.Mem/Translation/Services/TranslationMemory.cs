@@ -16,13 +16,16 @@ namespace DidacticalEnigma.Mem.Translation.Services
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
+        private readonly ICurrentTimeProvider currentTimeProvider;
 
         public TranslationMemory(
             MemContext dbContext,
-            IMorphologicalAnalyzer<IpadicEntry> analyzer)
+            IMorphologicalAnalyzer<IpadicEntry> analyzer,
+            ICurrentTimeProvider currentTimeProvider)
         {
             this.dbContext = dbContext;
             this.analyzer = analyzer;
+            this.currentTimeProvider = currentTimeProvider;
         }
 
         public async Task<Result<QueryResult>> Query(
@@ -104,9 +107,60 @@ namespace DidacticalEnigma.Mem.Translation.Services
             });
         }
 
+        public async Task<Result<Unit>> DeleteContext(Guid id)
+        {
+            var context = await this.dbContext.Contexts
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (context == null)
+            {
+                return Result<Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "context not found");
+            }
+
+            this.dbContext.Contexts.Remove(context);
+            return Result<Unit>.Ok(Unit.Value);
+        }
+
+        public async Task<Result<Unit>> DeleteTranslation(string projectName, string correlationId)
+        {
+            var translation = await this.dbContext.TranslationPairs
+                .FirstOrDefaultAsync(t =>
+                    t.Parent.Name == projectName &&
+                    t.CorrelationId == correlationId);
+            
+            if (translation == null)
+            {
+                return Result<Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "translation not found");
+            }
+
+            this.dbContext.TranslationPairs.Remove(translation);
+            return Result<Unit>.Ok(Unit.Value);
+        }
+
+        public async Task<Result<Unit>> DeleteProject(string projectName)
+        {
+            var project = await this.dbContext.Projects
+                .FirstOrDefaultAsync(p => p.Name == projectName);
+
+            if (project == null)
+            {
+                return Result<Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "project not found");
+            }
+
+            this.dbContext.Projects.Remove(project);
+            return Result<Unit>.Ok(Unit.Value);
+        }
+
         public async Task<Result<Unit>> AddProject(string projectName)
         {
-            var project = await this.dbContext.Projects.FirstOrDefaultAsync(p => p.Name == projectName);
+            var project = await this.dbContext.Projects.FirstOrDefaultAsync(
+                p => p.Name == projectName);
             if (project != null)
             {
                 return Result<Unit>.Failure(
@@ -150,6 +204,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         HttpStatusCode.BadRequest,
                         "the translation refers to non-existing context");
                 }
+
+                var currentTime = this.currentTimeProvider.GetCurrentTime();
                 var model = new StoredModels.Translation()
                 {
                     Id = Guid.NewGuid(),
@@ -157,7 +213,9 @@ namespace DidacticalEnigma.Mem.Translation.Services
                     Parent = project,
                     Target = translation.Target,
                     Source = translation.Source,
-                    ContextId = translation.Context
+                    ContextId = translation.Context,
+                    CreationTime = currentTime,
+                    ModificationTime = currentTime
                 };
                 model.SearchVector = await this.dbContext.ToTsVector(analyzer.Normalize(translation.Source));
                 this.dbContext.TranslationPairs.Add(model);

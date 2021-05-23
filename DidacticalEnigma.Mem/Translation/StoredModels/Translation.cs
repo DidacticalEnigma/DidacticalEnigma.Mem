@@ -27,5 +27,9 @@ namespace DidacticalEnigma.Mem.Translation.StoredModels
         public Guid? ContextId { get; set; }
         
         public int ParentId { get; set; }
+        
+        public DateTime CreationTime { get; set; }
+        
+        public DateTime ModificationTime { get; set; }
     }
 }

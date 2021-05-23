@@ -50,11 +50,14 @@ namespace DidacticalEnigma.Mem
                 translationPairBuilder.Property(translationPair => translationPair.SearchVector).HasMaxLength(8192).IsRequired();
                 translationPairBuilder.Property(translationPair => translationPair.Target).HasMaxLength(4096).IsRequired(false);
                 translationPairBuilder.Property(translationPair => translationPair.CorrelationId).HasMaxLength(256);
+                translationPairBuilder.Property(translationPair => translationPair.CreationTime).IsRequired(true);
+                translationPairBuilder.Property(translationPair => translationPair.ModificationTime).IsRequired(true);
                 
                 translationPairBuilder
                     .HasOne(translationPair => translationPair.Context)
                     .WithMany()
                     .HasForeignKey(translationPair => translationPair.ContextId)
+                    .OnDelete(DeleteBehavior.SetNull)
                     .IsRequired(false);
                 
                 translationPairBuilder.HasIndex(translationPair => translationPair.CorrelationId);
