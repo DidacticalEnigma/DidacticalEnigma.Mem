@@ -1,0 +1,21 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "DatabaseConfiguration": {
+    "ConnectionString": "Host=localhost;Port=5432;Database=didacticalenigma;Username=didacticalenigma;Password=POSTGRES_PASSWORD_GOES_HERE"
+  },
+  "MeCabConfiguration": {
+    "PathToDictionary": "/var/www/didacticalenigma/dataFiles/mecab/ipadic"
+  },
+  "AuthConfiguration": {
+    "Authority": "OPENID_AUTHORITY_GOES_HERE",
+    "Audience": "OPENID_AUDIENCE_GOES_HERE",
+    "AnonymousUsersCanReadTranslations": true,
+    "AnonymousUsersCanReadContexts": true
+  }
+}

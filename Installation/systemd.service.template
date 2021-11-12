@@ -1,0 +1,20 @@
+[Unit]
+Description=DidacticalEnigma.Mem
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=3
+User=didacticalenigma
+Environment=ASPNETCORE_URLS=http://localhost:APPLICATION_PORT_GOES_HERE
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+ExecStart=dotnet DidacticalEnigma.Mem.dll
+StandardOutput=syslog
+StandardError=syslog
+WorkingDirectory=/var/www/didacticalenigma-mem/
+
+[Install]
+WantedBy=multi-user.target

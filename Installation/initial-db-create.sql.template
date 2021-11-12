@@ -1,0 +1,5 @@
+CREATE DATABASE didacticalenigma;
+
+CREATE USER didacticalenigma WITH ENCRYPTED PASSWORD 'POSTGRES_PASSWORD_GOES_HERE';
+
+GRANT ALL PRIVILEGES ON DATABASE didacticalenigma TO didacticalenigma;

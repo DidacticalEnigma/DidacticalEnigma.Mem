@@ -41,7 +41,7 @@ namespace DidacticalEnigma.Mem.Translation.Extensions
                 values.Add(count);
             }
 
-            var start = values.Indexed().MaxBy(p => p.element).index;
+            var start = EnumerableExt.MaxBy(values.Indexed(), p => p.element).index;
             var highlighter = GetHighlighterFor(haystack);
             var haystackStrings = haystackMorphemes.Select(m => m.SurfaceForm).Materialize();
             var strings = haystackStrings
