@@ -26,3 +26,25 @@ Configuration
 - `read:translations` - Can read translations
 
 Note that in addition to the permissions in the token, `AuthConfiguration:AnonymousUsersCanReadTranslations` and `AuthConfiguration:AnonymousUsersCanReadContexts` control whether anonymous users, without providing any kind of token, are allowed to access translations and contexts.
+
+Installation
+------------
+
+(assumes Debian 11 on the target server)
+
+The provided installation script sets up the application running behind Nginx reverse proxy, with HTTPS provided by Let's Encrypt's Certbot, connecting to the local PostgreSQL instance. The script was tested with a clean Debian install, but should work properly even in case if Nginx, Certbot, or PostgreSQL are already installed.
+
+From the main directory, run
+
+```
+dotnet ef migrations script -o Installation/initial-migration.sql -p DidacticalEnigma.Mem/DidacticalEnigma.Mem.csproj
+dotnet publish -c Release -r linux-x64 --self-contained false -o Installation/DidacticalEnigma.Mem
+```
+
+Edit the `Installation/debian.sh` file and fill in the parameters.
+
+Copy the `Installation` folder to the target server, on the target server, change directory to the newly copied `Installation` one, and run 
+
+```
+sudo ./debian.sh
+```

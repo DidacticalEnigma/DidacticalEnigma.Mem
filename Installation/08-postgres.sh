@@ -5,7 +5,10 @@ apt install -y postgresql dos2unix
 
 cp initial-db-create.sql.template initial-db-create.sql
 
-sed -i "s/POSTGRES_PASSWORD_GOES_HERE/$POSTGRES_PASSWORD_GOES_HERE/" initial-db-create.sql
+sed \
+	-e "s/POSTGRES_PASSWORD_GOES_HERE/$POSTGRES_PASSWORD_GOES_HERE/" \
+	initial-db-create.sql.template \
+	> initial-db-create.sql
 
 sudo -u postgres psql -f initial-db-create.sql
 

@@ -11,12 +11,10 @@ certbot --nginx -n -d "$DOMAIN_NAME_GOES_HERE" --agree-tos --email "$LETSENCRYPT
 # what we want,
 # which is why we unfuck it by replacing it with the "phase 2" configuration.
 
-cp nginx.phase2.conf.template nginx.conf
-
-sed -i "s/DOMAIN_NAME_GOES_HERE/$DOMAIN_NAME_GOES_HERE/" nginx.conf
-sed -i "s/EXPOSED_PORT_GOES_HERE/$EXPOSED_PORT_GOES_HERE/" nginx.conf
-sed -i "s/APPLICATION_PORT_GOES_HERE/$APPLICATION_PORT_GOES_HERE/" nginx.conf
-
-cp nginx.conf /etc/nginx/sites-available/didacticalenigma-mem.conf
+sed \
+	-e "s/DOMAIN_NAME_GOES_HERE/$DOMAIN_NAME_GOES_HERE/" \
+	-e "s/EXPOSED_PORT_GOES_HERE/$EXPOSED_PORT_GOES_HERE/" \
+	-e "s/APPLICATION_PORT_GOES_HERE/$APPLICATION_PORT_GOES_HERE/" nginx.phase2.conf.template \
+	> /etc/nginx/sites-available/didacticalenigma-mem.conf
 
 service nginx reload

@@ -19,5 +19,3 @@ apt update
 ./09-nginx.sh
 ./10-letsencrypt.sh
 ./11-systemd.sh
-
-# User
