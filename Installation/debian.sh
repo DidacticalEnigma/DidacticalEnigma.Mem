@@ -19,3 +19,6 @@ apt update
 ./09-nginx.sh
 ./10-letsencrypt.sh
 ./11-systemd.sh
+
+# HARDENING - EXAMINE THE FILE BEFORE RUNNING IT
+./99-hardening.sh
