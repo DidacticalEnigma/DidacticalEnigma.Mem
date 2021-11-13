@@ -228,7 +228,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
         public async Task<Result<Unit>> AddTranslations(string projectName, IReadOnlyCollection<AddTranslationParams> translations)
         {
-            var project = await this.dbContext.Projects.FirstAsync(p => p.Name == projectName);
+            var project = await this.dbContext.Projects.FirstOrDefaultAsync(p => p.Name == projectName);
             if (project == null)
             {
                 return Result<Unit>.Failure(
