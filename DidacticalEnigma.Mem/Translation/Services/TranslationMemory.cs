@@ -226,12 +226,15 @@ namespace DidacticalEnigma.Mem.Translation.Services
             return Result<Unit>.Ok(Unit.Value);
         }
 
-        public async Task<Result<Unit>> AddTranslations(string projectName, IReadOnlyCollection<AddTranslationParams> translations)
+        public async Task<Result<AddTranslationsResult>> AddTranslations(
+            string projectName,
+            IReadOnlyCollection<AddTranslationParams> translations,
+            bool allowPartialAdd = false)
         {
             var project = await this.dbContext.Projects.FirstOrDefaultAsync(p => p.Name == projectName);
             if (project == null)
             {
-                return Result<Unit>.Failure(
+                return Result<AddTranslationsResult>.Failure(
                     HttpStatusCode.NotFound,
                     "no such project exists");
             }
@@ -239,21 +242,51 @@ namespace DidacticalEnigma.Mem.Translation.Services
             var inputContextIdList = translations
                 .Select(translation => translation.Context)
                 .OfType<Guid>();
+            
+            var inputTranslationIds = translations
+                .Select(translation => translation.CorrelationId)
+                .ToHashSet();
+
+            if (inputTranslationIds.Count != translations.Count)
+            {
+                return Result<AddTranslationsResult>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "attempting to add multiple translations with the same id");
+            }
 
             var validContextIds = (await this.dbContext.Contexts
                     .Where(context => inputContextIdList.Contains(context.Id))
                     .Select(context => context.Id)
                     .ToListAsync())
                 .ToHashSet();
+
+            var alreadyExistingTranslationIds = (await this.dbContext.TranslationPairs
+                    .Where(translation => translation.Parent.Name == projectName)
+                    .Where(translation => inputTranslationIds.Contains(translation.CorrelationId))
+                    .Select(translation => translation.CorrelationId)
+                    .ToListAsync())
+                .ToHashSet();
+
+            if (!allowPartialAdd && alreadyExistingTranslationIds.Count != 0)
+            {
+                return Result<AddTranslationsResult>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "there already exists a translation with given correlation id");
+            }
             
             foreach (var translation in translations)
             {
                 if (translation.Context != null &&
                     !validContextIds.Contains(translation.Context.Value))
                 {
-                    return Result<Unit>.Failure(
+                    return Result<AddTranslationsResult>.Failure(
                         HttpStatusCode.BadRequest,
                         "the translation refers to non-existing context");
+                }
+
+                if (alreadyExistingTranslationIds.Contains(translation.CorrelationId))
+                {
+                    continue;
                 }
 
                 var currentTime = this.currentTimeProvider.GetCurrentTime();
@@ -271,7 +304,10 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 model.SearchVector = await this.dbContext.ToTsVector(analyzer.Normalize(translation.Source));
                 this.dbContext.TranslationPairs.Add(model);
             }
-            return Result<Unit>.Ok(Unit.Value);
+            return Result<AddTranslationsResult>.Ok(new AddTranslationsResult()
+            {
+                NotAdded = alreadyExistingTranslationIds
+            });
         }
 
         public async Task<Result<Unit>> AddContext(Guid id, byte[]? content, string? mediaType, string? text)

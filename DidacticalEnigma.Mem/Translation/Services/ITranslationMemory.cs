@@ -12,7 +12,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
         Task<Result<Unit>> AddProject(string projectName);
 
-        Task<Result<Unit>> AddTranslations(string projectName, IReadOnlyCollection<AddTranslationParams> translations);
+        Task<Result<AddTranslationsResult>> AddTranslations(string projectName, IReadOnlyCollection<AddTranslationParams> translations, bool allowPartialAdd = false);
 
         Task<Result<Unit>> AddContext(Guid id, byte[]? context, string? mediaType, string? text);
 

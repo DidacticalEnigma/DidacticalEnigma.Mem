@@ -37,14 +37,14 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromBody] AddTranslationsParams request,
             [FromServices] ITranslationMemory translationMemory)
         {
-            var result = await translationMemory.AddTranslations(projectName, request.Translations);
+            var result = await translationMemory.AddTranslations(projectName, request.Translations, request.AllowPartialAdd);
             if (result.Error != null)
             {
-                return Unwrap(result, new AddTranslationsResult());
+                return Unwrap(result);
             }
 
             await translationMemory.SaveChanges();
-            return Ok(new AddTranslationsResult());
+            return Ok(result.Value);
         }
 
         [SwaggerOperation(OperationId = "AddContexts")]
