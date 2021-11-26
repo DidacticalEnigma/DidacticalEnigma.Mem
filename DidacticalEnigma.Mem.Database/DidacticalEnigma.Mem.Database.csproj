@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Code\AddContext.sql" />
+      <EmbeddedResource Include="Code\AddProject.sql" />
+      <EmbeddedResource Include="Code\AddTranslations.sql" />
+      <EmbeddedResource Include="Code\DeleteContext.sql" />
+      <EmbeddedResource Include="Code\DeleteProject.sql" />
+      <EmbeddedResource Include="Code\DeleteTranslation.sql" />
+      <EmbeddedResource Include="Code\GetContext.sql" />
+      <EmbeddedResource Include="Code\QueryTranslations.sql" />
+      <EmbeddedResource Include="Code\UpdateTranslation.sql" />
+      <EmbeddedResource Include="Migrations\1_InitialMigration.sql" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="dbup-core" Version="4.5.0" />
+        <PackageReference Include="dbup-postgresql" Version="4.5.0" />
+    </ItemGroup>
+
+</Project>

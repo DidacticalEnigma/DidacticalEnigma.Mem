@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using DidacticalEnigma.Core.Models.LanguageService;
@@ -18,6 +19,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using NMeCab;
+using Npgsql;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace DidacticalEnigma.Mem
@@ -74,6 +76,8 @@ namespace DidacticalEnigma.Mem
             services.AddSingleton<ICurrentTimeProvider, CurrentTimeProvider>();
 
             services.AddScoped<ITranslationMemory, TranslationMemory>();
+
+            services.AddScoped<IDbConnection>(provider => new NpgsqlConnection(databaseConfiguration.ConnectionString));
             
             services.AddDbContext<MemContext>(options =>
                 options.UseNpgsql(databaseConfiguration.ConnectionString));
