@@ -1,28 +1,28 @@
-DROP PROCEDURE IF EXISTS "GetContext";
+DROP ROUTINE IF EXISTS "GetContext";
 
-CREATE PROCEDURE "GetContext"
+CREATE FUNCTION "GetContext"
 (
-    "InputContextId" uuid,
-    "Result" inout jsonb,
-    "StatusCode" inout int
+    "InputContextId" uuid
+)
+RETURNS TABLE
+(
+    "Result" jsonb,
+    "StatusCode" int
 )
 AS $$
-DECLARE "MediaTypeId" INTEGER;
 BEGIN
 
     IF NOT EXISTS (SELECT * FROM "Contexts" WHERE "Id" = "InputContextId") THEN
-        SELECT 1 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 1 AS "StatusCode" FROM "Contexts";
         RETURN;
     END IF;
 
-    SELECT json_agg(row_to_json(data)) INTO "Result"
+    RETURN QUERY SELECT to_jsonb(data) AS "Result", 0 AS "StatusCode"
     FROM (
-        SELECT "Contexts"."Content" AS "Content", "MediaTypes"."MediaType" AS "MediaType", "Contexts"."Text" AS "Text"
+        SELECT encode("Contexts"."Content", 'base64') AS "Content", "MediaTypes"."MediaType" AS "MediaType", "Contexts"."Text" AS "Text"
         FROM "Contexts"
         JOIN "MediaTypes" on "MediaTypes"."Id" = "Contexts"."MediaTypeId"
         WHERE "Contexts"."Id" = "InputContextId") data;
-
-    SELECT 0 INTO "StatusCode";
 
 END
 $$

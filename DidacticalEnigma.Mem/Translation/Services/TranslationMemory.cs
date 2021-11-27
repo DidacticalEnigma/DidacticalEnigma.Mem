@@ -1,38 +1,42 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Dapper;
 using DidacticalEnigma.Core.Models.LanguageService;
+using DidacticalEnigma.Mem.Extensions;
+using DidacticalEnigma.Mem.Translation.DbModels;
 using DidacticalEnigma.Mem.Translation.Extensions;
 using DidacticalEnigma.Mem.Translation.IoModels;
-using DidacticalEnigma.Mem.Translation.StoredModels;
-using Microsoft.EntityFrameworkCore;
-using Utility.Utils;
+using Newtonsoft.Json;
+using Npgsql;
 
 namespace DidacticalEnigma.Mem.Translation.Services
 {
-    public class TranslationMemory : ITranslationMemory
+    public class TranslationMemory : ITranslationMemory, IDisposable
     {
-        private readonly MemContext dbContext;
+        private readonly DbConnection connection;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
+        private readonly DbTransaction transaction;
 
         public TranslationMemory(
-            MemContext dbContext,
-            IMorphologicalAnalyzer<IpadicEntry> analyzer,
-            ICurrentTimeProvider currentTimeProvider)
+        DbConnection connection,
+        IMorphologicalAnalyzer<IpadicEntry> analyzer,
+        ICurrentTimeProvider currentTimeProvider)
         {
-            this.dbContext = dbContext;
+            this.connection = connection;
+            connection.Open();
             this.analyzer = analyzer;
             this.currentTimeProvider = currentTimeProvider;
+            this.transaction = connection.BeginTransaction();
         }
-
-        public async Task<Result<QueryResult>> Query(
-            string? projectName,
-            string? correlationIdStart,
-            string? queryText,
-            int limit = 50)
+        
+        public async Task<Result<QueryResult>> Query(string? projectName, string? correlationIdStart, string? queryText, int limit = 50)
         {
             if (projectName == null && correlationIdStart == null && queryText == null)
             {
@@ -41,285 +45,114 @@ namespace DidacticalEnigma.Mem.Translation.Services
                     "one of: projectName, correlationId, queryText must be provided");
             }
             limit = Math.Min(limit, 250);
-            var translations = this.dbContext.TranslationPairs.AsQueryable();
-            if(projectName != null)
-                translations = translations.Where(translationPair => translationPair.Parent.Name == projectName);
-            if(correlationIdStart != null)
-                translations = translations.Where(translationPair => translationPair.CorrelationId.StartsWith(correlationIdStart));
-            if (queryText != null)
-            {
-                var normalized = analyzer.Normalize(queryText);
-                translations = translations.Where(translationPair =>
-                    translationPair.SearchVector.Matches(
-                        EF.Functions.PhraseToTsQuery("simple", normalized)));
-            }
 
-            var results = (await translations
-                    .Take(limit)
-                    .Select(translationPair => new
-                    {
-                        ParentName = translationPair.Parent.Name,
-                        Source = translationPair.Source,
-                        Target = translationPair.Target,
-                        CorrelationId = translationPair.CorrelationId,
-                        Context = translationPair.Context != null ? translationPair.Context.Id : (Guid?) null
-                    })
-                    .ToListAsync())
-                .Select(selection =>
+            var parameters = new QueryTranslationsDbParams()
+            {
+                InputProjectName = projectName,
+                InputCorrelationId = correlationIdStart,
+                NormalizedQueryText = queryText != null ? analyzer.Normalize(queryText) : null,
+                Limit = limit
+            };
+
+            var results =
+                await this.connection.QueryAsync<QueryTranslationsDbResultEntry>(
+                    DapperExtensions.SqlForFunction("QueryTranslations", parameters),
+                    parameters,
+                    transaction);
+            
+            return Result<QueryResult>.Ok(new QueryResult(results.Select(
+                result =>
                 {
                     var (source, highlighter) = queryText != null
-                        ? analyzer.Highlight(selection.Source, queryText)
-                        : (selection.Source, null);
+                        ? analyzer.Highlight(result.Source, queryText)
+                        : (result.Source, null);
                     return new QueryTranslationResult(
-                        projectName: selection.ParentName,
+                        projectName: result.ParentName,
                         source: source,
-                        target: selection.Target,
+                        target: result.Target,
                         highlighterSequence: highlighter,
-                        correlationId: selection.CorrelationId,
-                        context: selection.Context);
-                });
-            return Result<QueryResult>.Ok(new QueryResult(results));
-        }
-
-        public async Task<Result<QueryContextResult>> GetContext(Guid id)
-        {
-            var contextData = await this.dbContext.Contexts
-                .Where(context => context.Id == id)
-                .Select(context => new {
-                    Content = context.Content,
-                    MediaType = context.MediaType != null ? context.MediaType.MediaType : null,
-                    Text = context.Text
-                })
-                .FirstOrDefaultAsync();
-
-            if (contextData == null)
-            {
-                return Result<QueryContextResult>.Failure(
-                    HttpStatusCode.NotFound,
-                    "no context found with given id");
-            }
-            
-            return Result<QueryContextResult>.Ok(new QueryContextResult()
-            {
-                Content = contextData.Content,
-                MediaType = contextData.MediaType,
-                Text = contextData.Text
-            });
-        }
-
-        public async Task<Result<Unit>> DeleteContext(Guid id)
-        {
-            var context = await this.dbContext.Contexts
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (context == null)
-            {
-                return Result<Unit>.Failure(
-                    HttpStatusCode.NotFound,
-                    "context not found");
-            }
-
-            this.dbContext.Contexts.Remove(context);
-            return Result<Unit>.Ok(Unit.Value);
-        }
-
-        public async Task<Result<Unit>> DeleteTranslation(string projectName, string correlationId)
-        {
-            var translation = await this.dbContext.TranslationPairs
-                .FirstOrDefaultAsync(t =>
-                    t.Parent.Name == projectName &&
-                    t.CorrelationId == correlationId);
-            
-            if (translation == null)
-            {
-                return Result<Unit>.Failure(
-                    HttpStatusCode.NotFound,
-                    "translation not found");
-            }
-
-            this.dbContext.TranslationPairs.Remove(translation);
-            return Result<Unit>.Ok(Unit.Value);
-        }
-
-        public async Task<Result<Unit>> DeleteProject(string projectName)
-        {
-            var project = await this.dbContext.Projects
-                .FirstOrDefaultAsync(p => p.Name == projectName);
-
-            if (project == null)
-            {
-                return Result<Unit>.Failure(
-                    HttpStatusCode.NotFound,
-                    "project not found");
-            }
-
-            this.dbContext.Projects.Remove(project);
-            return Result<Unit>.Ok(Unit.Value);
-        }
-
-        public async Task<Result<Unit>> UpdateTranslation(
-            string projectName,
-            string correlationId,
-            string? source,
-            string? target,
-            Guid? context)
-        {
-            var translation = await this.dbContext.TranslationPairs
-                .FirstOrDefaultAsync(t =>
-                    t.Parent.Name == projectName &&
-                    t.CorrelationId == correlationId);
-            
-            if (translation == null)
-            {
-                return Result<Unit>.Failure(
-                    HttpStatusCode.NotFound,
-                    "translation not found");
-            }
-
-            var currentTime = this.currentTimeProvider.GetCurrentTime(); 
-            
-            if (source != null)
-            {
-                translation.Source = source;
-                translation.ModificationTime = currentTime;
-            }
-
-            if (target != null)
-            {
-                translation.Target = target;
-                translation.ModificationTime = currentTime;
-            }
-
-            if (context != null)
-            {
-                var contextExists = await this.dbContext.Contexts
-                    .AnyAsync(c => c.Id == context.Value);
-
-                if (!contextExists)
-                {
-                    return Result<Unit>.Failure(
-                        HttpStatusCode.BadRequest,
-                        "attempt to set to non-existing context");
-                }
-                
-                translation.ContextId = context.Value;
-                translation.ModificationTime = currentTime;
-            }
-            return Result<Unit>.Ok(Unit.Value);
+                        correlationId: result.CorrelationId,
+                        context: result.Context);
+                })));
         }
 
         public async Task<Result<Unit>> AddProject(string projectName)
         {
-            var project = await this.dbContext.Projects.FirstOrDefaultAsync(
-                p => p.Name == projectName);
-            if (project != null)
+            var parameters = new AddProjectDbParams()
             {
-                return Result<Unit>.Failure(
-                    HttpStatusCode.Conflict,
-                    "project with a given name already exists");
-            }
-            project = new Project()
-            {
-                Name = projectName
+                InputProjectName = projectName
             };
-            this.dbContext.Projects.Add(project);
-            return Result<Unit>.Ok(Unit.Value);
+
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("AddProject", parameters),
+                parameters,
+                transaction);
+
+            switch (result.StatusCode)
+            {
+                case 0:
+                    return Result<Unit>.Ok(result.Get<Unit>());
+                case 1:
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.Conflict,
+                        "project with a given name already exists");
+                default:
+                    throw new InvalidDataException();
+            }
         }
 
-        public async Task<Result<AddTranslationsResult>> AddTranslations(
-            string projectName,
-            IReadOnlyCollection<AddTranslationParams> translations,
-            bool allowPartialAdd = false)
+        public async Task<Result<AddTranslationsResult>> AddTranslations(string projectName, IReadOnlyCollection<AddTranslationParams> translations, bool allowPartialAdd = false)
         {
-            var project = await this.dbContext.Projects.FirstOrDefaultAsync(p => p.Name == projectName);
-            if (project == null)
+            var parameters = new AddTranslationsDbParams()
             {
-                return Result<AddTranslationsResult>.Failure(
-                    HttpStatusCode.NotFound,
-                    "no such project exists");
-            }
+                Translations = JsonConvert.SerializeObject(
+                    translations
+                        .Select(translation => new AddTranslationsDbNewEntry()
+                        {
+                            Context = translation.Context,
+                            Id = Guid.NewGuid(),
+                            Source = translation.Source,
+                            Target = translation.Target,
+                            CorrelationId = translation.CorrelationId,
+                            NormalizedSource = analyzer.Normalize(translation.Source)
+                        })),
+                CurrentTime = currentTimeProvider.GetCurrentTime(),
+                AllowPartialAdd = allowPartialAdd,
+                InputProjectName = projectName
+            };
 
-            var inputContextIdList = translations
-                .Select(translation => translation.Context)
-                .OfType<Guid>();
-            
-            var inputTranslationIds = translations
-                .Select(translation => translation.CorrelationId)
-                .ToHashSet();
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("AddTranslations", parameters),
+                parameters,
+                transaction);
 
-            if (inputTranslationIds.Count != translations.Count)
+            switch (result.StatusCode)
             {
-                return Result<AddTranslationsResult>.Failure(
-                    HttpStatusCode.BadRequest,
-                    "attempting to add multiple translations with the same id");
-            }
-
-            var validContextIds = (await this.dbContext.Contexts
-                    .Where(context => inputContextIdList.Contains(context.Id))
-                    .Select(context => context.Id)
-                    .ToListAsync())
-                .ToHashSet();
-
-            var alreadyExistingTranslationIds = (await this.dbContext.TranslationPairs
-                    .Where(translation => translation.Parent.Name == projectName)
-                    .Where(translation => inputTranslationIds.Contains(translation.CorrelationId))
-                    .Select(translation => translation.CorrelationId)
-                    .ToListAsync())
-                .ToHashSet();
-
-            if (!allowPartialAdd && alreadyExistingTranslationIds.Count != 0)
-            {
-                return Result<AddTranslationsResult>.Failure(
-                    HttpStatusCode.BadRequest,
-                    "there already exists a translation with given correlation id");
-            }
-            
-            foreach (var translation in translations)
-            {
-                if (translation.Context != null &&
-                    !validContextIds.Contains(translation.Context.Value))
-                {
+                case 0:
+                    return Result<AddTranslationsResult>.Ok(result.Get<AddTranslationsResult>());
+                case 1:
+                    return Result<AddTranslationsResult>.Failure(
+                        HttpStatusCode.NotFound,
+                        "no such project exists");
+                case 2:
+                    return Result<AddTranslationsResult>.Failure(
+                        HttpStatusCode.BadRequest,
+                        "attempting to add multiple translations with the same id");
+                case 3:
                     return Result<AddTranslationsResult>.Failure(
                         HttpStatusCode.BadRequest,
                         "the translation refers to non-existing context");
-                }
-
-                if (alreadyExistingTranslationIds.Contains(translation.CorrelationId))
-                {
-                    continue;
-                }
-
-                var currentTime = this.currentTimeProvider.GetCurrentTime();
-                var model = new StoredModels.Translation()
-                {
-                    Id = Guid.NewGuid(),
-                    CorrelationId = translation.CorrelationId,
-                    Parent = project,
-                    Target = translation.Target,
-                    Source = translation.Source,
-                    ContextId = translation.Context,
-                    CreationTime = currentTime,
-                    ModificationTime = currentTime
-                };
-                model.SearchVector = await this.dbContext.ToTsVector(analyzer.Normalize(translation.Source));
-                this.dbContext.TranslationPairs.Add(model);
+                case 4:
+                    return Result<AddTranslationsResult>.Failure(
+                        HttpStatusCode.BadRequest,
+                        "there already exists a translation with given correlation id");
+                default:
+                    throw new InvalidDataException();
             }
-            return Result<AddTranslationsResult>.Ok(new AddTranslationsResult()
-            {
-                NotAdded = alreadyExistingTranslationIds
-            });
         }
 
         public async Task<Result<Unit>> AddContext(Guid id, byte[]? content, string? mediaType, string? text)
         {
-            var context = await this.dbContext.Contexts.FindAsync(id);
-            if (context != null)
-            {
-                return Result<Unit>.Failure(
-                    HttpStatusCode.BadRequest,
-                    "request with such a guid exists");
-            }
-
             if (text == null && mediaType == null && content == null)
             {
                 return Result<Unit>.Failure(
@@ -340,33 +173,176 @@ namespace DidacticalEnigma.Mem.Translation.Services
                     HttpStatusCode.BadRequest,
                     "no content provided");
             }
-
-            AllowedMediaType? mediaTypeModel = null;
-            if (mediaType != null)
+            
+            var parameters = new AddContextDbParams()
             {
-                mediaTypeModel = await this.dbContext.MediaTypes.FirstOrDefaultAsync(m => m.MediaType == mediaType);
-                if (mediaTypeModel == null)
-                {
+                InputContent = content,
+                InputText = text,
+                InputContextId = id,
+                InputMediaType = mediaType
+            };
+
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("AddContext", parameters),
+                parameters,
+                transaction);
+
+            switch (result.StatusCode)
+            {
+                case 0:
+                    return Result<Unit>.Ok(result.Get<Unit>());
+                case 1:
                     return Result<Unit>.Failure(
                         HttpStatusCode.BadRequest,
                         "media type not acceptable");
-                }
+                case 2:
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.BadRequest,
+                        "request with such a guid exists");
+                default:
+                    throw new InvalidDataException();
             }
+        }
 
-            this.dbContext.Contexts.Add(new Context()
+        public async Task<Result<QueryContextResult>> GetContext(Guid id)
+        {
+            var parameters = new GetContextDbParams()
             {
-                Id = id,
-                Content = content,
-                MediaType = mediaTypeModel,
-                Text = text
-            });
-            
-            return Result<Unit>.Ok(Unit.Value);
+                InputContextId = id
+            };
+
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("GetContext", parameters),
+                parameters,
+                transaction);
+
+            switch (result.StatusCode)
+            {
+                case 0:
+                    return Result<QueryContextResult>.Ok(result.Get<QueryContextResult>());
+                case 1:
+                    return Result<QueryContextResult>.Failure(
+                        HttpStatusCode.NotFound,
+                        "no context found with given id");
+                default:
+                    throw new InvalidDataException();
+            }
+        }
+
+        public async Task<Result<Unit>> DeleteContext(Guid id)
+        {
+            var parameters = new DeleteContextDbParams()
+            {
+                InputContextId = id
+            };
+
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("DeleteContext", parameters),
+                parameters,
+                transaction);
+
+            switch (result.StatusCode)
+            {
+                case 0:
+                    return Result<Unit>.Ok(result.Get<Unit>());
+                case 1:
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.NotFound,
+                        "context not found");
+                default:
+                    throw new InvalidDataException();
+            }
+        }
+
+        public async Task<Result<Unit>> DeleteTranslation(string projectName, string correlationId)
+        {
+            var parameters = new DeleteTranslationDbParams()
+            {
+                InputCorrelationId = correlationId,
+                InputProjectName = projectName
+            };
+
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("DeleteTranslation", parameters),
+                parameters,
+                transaction);
+
+            switch (result.StatusCode)
+            {
+                case 0:
+                    return Result<Unit>.Ok(result.Get<Unit>());
+                case 1:
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.NotFound,
+                        "translation not found");
+                default:
+                    throw new InvalidDataException();
+            }
+        }
+
+        public async Task<Result<Unit>> DeleteProject(string projectName)
+        {
+            var parameters = new DeleteProjectDbParams()
+            {
+                InputProjectName = projectName
+            };
+
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("DeleteProject", parameters),
+                parameters,
+                transaction);
+
+            switch (result.StatusCode)
+            {
+                case 0:
+                    return Result<Unit>.Ok(result.Get<Unit>());
+                case 1:
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.NotFound,
+                        "project not found");
+                default:
+                    throw new InvalidDataException();
+            }
+        }
+
+        public async Task<Result<Unit>> UpdateTranslation(string projectName, string correlationId, string? source, string? target, Guid? context)
+        {
+            var parameters = new UpdateTranslationDbParams()
+            {
+                InputProjectName = projectName,
+                CurrentTime = this.currentTimeProvider.GetCurrentTime(),
+                InputSource = source,
+                InputTarget = target,
+                InputNormalizedSource = source != null ? analyzer.Normalize(source) : null,
+                
+            };
+
+            var result = await this.connection.QuerySingleAsync<GenericDbResult>(
+                DapperExtensions.SqlForFunction("DeleteProject", parameters),
+                parameters,
+                transaction);
+
+            switch (result.StatusCode)
+            {
+                case 0:
+                    return Result<Unit>.Ok(result.Get<Unit>());
+                case 1:
+                    return Result<Unit>.Failure(
+                        HttpStatusCode.NotFound,
+                        "project not found");
+                default:
+                    throw new InvalidDataException();
+            }
         }
 
         public async Task SaveChanges()
         {
-            await this.dbContext.SaveChangesAsync();
+            await this.transaction.CommitAsync();
+        }
+
+        public void Dispose()
+        {
+            this.transaction.Dispose();
         }
     }
 }

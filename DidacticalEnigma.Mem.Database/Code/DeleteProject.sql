@@ -1,9 +1,13 @@
-DROP PROCEDURE IF EXISTS "DeleteProject";
+DROP ROUTINE IF EXISTS "DeleteProject";
 
-CREATE PROCEDURE "DeleteProject"
+CREATE FUNCTION "DeleteProject"
 (
-    "InputProjectName" character varying(32),
-    "StatusCode" inout int
+    "InputProjectName" character varying(32)
+)
+RETURNS TABLE
+(
+    "Result" jsonb,
+    "StatusCode" int
 )
 AS $$
 DECLARE "DeletedCount" INTEGER;
@@ -14,9 +18,11 @@ BEGIN
     SELECT COUNT(*) INTO "DeletedCount" FROM deleted;
 
     IF "DeletedCount" <> 0 THEN
-        SELECT 0 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 0 AS "StatusCode" FROM "TranslationPairs";
+        RETURN;
     ELSE
-        SELECT 1 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 1 AS "StatusCode" FROM "TranslationPairs";
+        RETURN;
     END IF;
 END
 $$

@@ -1,23 +1,24 @@
-DROP PROCEDURE IF EXISTS "AddTranslations";
+DROP ROUTINE IF EXISTS "AddTranslations";
 
-CREATE PROCEDURE "AddTranslations"
+CREATE FUNCTION "AddTranslations"
 (
     "InputProjectName" character varying(32),
     "CurrentTime" timestamp without time zone,
     "AllowPartialAdd" bool,
-    "Translations" jsonb,
-    "Result" inout jsonb,
-    "StatusCode" inout int
+    "Translations" jsonb
+)
+RETURNS TABLE
+(
+    "Result" jsonb,
+    "StatusCode" int
 )
 AS $$
 DECLARE "ProjectId" INTEGER;
 BEGIN
-    SELECT '{"NotAdded":[]}'::jsonb INTO "Result";
-
     SELECT "Id" INTO "ProjectId" FROM "Projects" P WHERE P."Name" = "InputProjectName";
 
     IF "ProjectId" IS NULL THEN
-        SELECT 1 INTO "StatusCode";
+        RETURN QUERY SELECT '{"NotAdded":[]}'::jsonb AS "Result", 1 AS "StatusCode" FROM "TranslationPairs";
         RETURN;
     END IF;
 
@@ -39,17 +40,17 @@ BEGIN
         "Context" uuid);
 
     IF (SELECT COUNT("CorrelationId") <> COUNT(DISTINCT "CorrelationId") FROM "InputTranslations") THEN
-        SELECT 2 INTO "StatusCode";
+        RETURN QUERY SELECT '{"NotAdded":[]}'::jsonb AS "Result", 2 AS "StatusCode" FROM "TranslationPairs";
         RETURN;
     END IF;
 
     IF (SELECT COUNT(*) <> 0 FROM "Contexts" WHERE "Id" NOT IN (SELECT "Context" FROM "InputTranslations")) THEN
-        SELECT 3 INTO "StatusCode";
+        RETURN QUERY SELECT '{"NotAdded":[]}'::jsonb AS "Result", 3 AS "StatusCode" FROM "TranslationPairs";
         RETURN;
     END IF;
 
     IF "AllowPartialAdd" AND (SELECT COUNT(*) <> 0 FROM "InputTranslations" WHERE "CorrelationId" IN (SELECT "CorrelationId" FROM "TranslationPairs")) THEN
-        SELECT 4 INTO "StatusCode";
+        RETURN QUERY SELECT '{"NotAdded":[]}'::jsonb AS "Result", 4 AS "StatusCode" FROM "TranslationPairs";
         RETURN;
     END IF;
 
@@ -57,7 +58,9 @@ BEGIN
     SELECT "Id", "CorrelationId", "Source", to_tsvector('simple', "NormalizedSource"), "Target", "Context", "ProjectId", "CurrentTime", "CurrentTime"
     FROM "InputTranslations" WHERE "CorrelationId" NOT IN (SELECT "CorrelationId" FROM "TranslationPairs");
 
-    SELECT 0 INTO "StatusCode";
+    -- TODO: return all the entries that were not added in the JSON
+    RETURN QUERY SELECT '{"NotAdded":[]}'::jsonb AS "Result", 0 AS "StatusCode" FROM "TranslationPairs";
+    RETURN;
 END
 $$
 LANGUAGE plpgsql;

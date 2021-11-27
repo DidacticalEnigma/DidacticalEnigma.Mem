@@ -8,7 +8,7 @@ namespace DidacticalEnigma.Mem.Migrations
         {
             var connectionString =
                 args.FirstOrDefault()
-                ?? "Host=localhost;Port=5432;Database=detest;Username=detest;Password=POSTGRES_PASSWORD_GOES_HERE";
+                ?? "Host=localhost;Port=5432;Database=didacticalenigma;Username=didacticalenigma;Password=tt9lFUsiLTenOMLTNr4k";
 
             var updateLog = new DbUp.Engine.Output.ConsoleUpgradeLog();
             

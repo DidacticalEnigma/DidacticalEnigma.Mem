@@ -1,9 +1,13 @@
-DROP PROCEDURE IF EXISTS "DeleteContext";
+DROP ROUTINE IF EXISTS "DeleteContext";
 
-CREATE PROCEDURE "DeleteContext"
+CREATE FUNCTION "DeleteContext"
 (
-    "InputContextId" uuid,
-    "StatusCode" inout int
+    "InputContextId" uuid
+)
+RETURNS TABLE
+(
+    "Result" jsonb,
+    "StatusCode" int
 )
 AS $$
 DECLARE "DeletedCount" INTEGER;
@@ -14,9 +18,11 @@ BEGIN
     SELECT COUNT(*) INTO "DeletedCount" FROM deleted;
 
     IF "DeletedCount" <> 0 THEN
-        SELECT 0 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 0 AS "StatusCode" FROM "Contexts";
+        RETURN;
     ELSE
-        SELECT 1 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 1 AS "StatusCode" FROM "Contexts";
+        RETURN;
     END IF;
 END
 $$

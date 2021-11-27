@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS "QueryTranslations";
+DROP ROUTINE IF EXISTS "QueryTranslations";
 
 CREATE FUNCTION "QueryTranslations"
 (

@@ -1,10 +1,14 @@
-DROP PROCEDURE IF EXISTS "DeleteTranslation";
+DROP ROUTINE IF EXISTS "DeleteTranslation";
 
-CREATE PROCEDURE "DeleteTranslation"
+CREATE FUNCTION "DeleteTranslation"
 (
     "InputCorrelationId" character varying(256),
-    "InputProjectName" character varying(32),
-    "StatusCode" inout int
+    "InputProjectName" character varying(32)
+)
+RETURNS TABLE
+(
+    "Result" jsonb,
+    "StatusCode" int
 )
 AS $$
 DECLARE "DeletedCount" INTEGER;
@@ -19,9 +23,11 @@ BEGIN
     SELECT COUNT(*) INTO "DeletedCount" FROM deleted;
 
     IF "DeletedCount" <> 0 THEN
-        SELECT 0 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 0 AS "StatusCode" FROM "Contexts";
+        RETURN;
     ELSE
-        SELECT 1 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 1 AS "StatusCode" FROM "Contexts";
+        RETURN;
     END IF;
 END
 $$

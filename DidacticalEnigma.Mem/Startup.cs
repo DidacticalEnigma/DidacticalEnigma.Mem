@@ -1,10 +1,13 @@
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
+using Dapper;
 using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Authentication;
 using DidacticalEnigma.Mem.Configurations;
+using DidacticalEnigma.Mem.Translation.DbModels;
 using DidacticalEnigma.Mem.Translation.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -77,7 +80,7 @@ namespace DidacticalEnigma.Mem
 
             services.AddScoped<ITranslationMemory, TranslationMemory>();
 
-            services.AddScoped<IDbConnection>(provider => new NpgsqlConnection(databaseConfiguration.ConnectionString));
+            services.AddScoped<DbConnection>(provider => new NpgsqlConnection(databaseConfiguration.ConnectionString));
             
             services.AddDbContext<MemContext>(options =>
                 options.UseNpgsql(databaseConfiguration.ConnectionString));
@@ -148,6 +151,8 @@ namespace DidacticalEnigma.Mem
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            NpgsqlConnection.GlobalTypeMapper.UseJsonNet();
+
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

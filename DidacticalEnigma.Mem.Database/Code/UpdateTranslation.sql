@@ -1,6 +1,6 @@
-DROP PROCEDURE IF EXISTS "UpdateTranslation";
+DROP ROUTINE IF EXISTS "UpdateTranslation";
 
-CREATE PROCEDURE "UpdateTranslation"
+CREATE FUNCTION "UpdateTranslation"
 (
     "InputProjectName" character varying(32),
     "InputCorrelationId" character varying(32),
@@ -8,20 +8,23 @@ CREATE PROCEDURE "UpdateTranslation"
     "InputNormalizedSource" character varying(8192),
     "InputSource" character varying(4096),
     "InputTarget" character varying(4096),
-    "InputContextId" uuid,
-    "StatusCode" inout int
+    "InputContextId" uuid
+)
+RETURNS TABLE
+(
+    "Result" jsonb,
+    "StatusCode" int
 )
 AS $$
 DECLARE "UsedCurrentTime" timestamp without time zone;
-DECLARE "ContextId" uuid;
 BEGIN
     IF "InputContextId" IS NOT NULL AND EXISTS (SELECT * FROM "Contexts" WHERE "Id" = "InputContextId") THEN
-        SELECT 1 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 1 AS "StatusCode" FROM "TranslationPairs";
         RETURN;
     END IF;
 
     IF NOT EXISTS (SELECT * FROM "TranslationPairs" JOIN "Projects" P on P."Id" = "TranslationPairs"."ParentId" WHERE "CorrelationId" = "InputCorrelationId" AND P."Name" = "InputProjectName") THEN
-        SELECT 2 INTO "StatusCode";
+        RETURN QUERY SELECT '{}'::jsonb AS "Result", 2 AS "StatusCode" FROM "TranslationPairs";
         RETURN;
     END IF;
 
@@ -64,7 +67,8 @@ BEGIN
         AND "ParentId" = (SELECT "Id" FROM "Projects" WHERE "Name" = "InputProjectName");
     END IF;
 
-    SELECT 0 INTO "StatusCode";
+    RETURN QUERY SELECT '{}'::jsonb AS "Result", 0 AS "StatusCode" FROM "TranslationPairs";
+    RETURN;
 END
 $$
 LANGUAGE plpgsql;
