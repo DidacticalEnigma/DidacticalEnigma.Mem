@@ -6,7 +6,7 @@ namespace DidacticalEnigma.Mem.Translation.Extensions
     // Wraps a stream, but also disposes another object afterwards
     public class DisposingStream : Stream
     {
-        private Stream wrappedStream;
+        private readonly Stream wrappedStream;
         
         private readonly IDisposable disposable;
 

@@ -98,7 +98,7 @@ namespace DidacticalEnigma.Mem.IntegrationTests
                 actual: result.Translations.Select(tl => tl.CorrelationId).OrderBy(x => x));
         }
         
-        [Fact(Skip = "functionality not implemented yet")]
+        [Fact]
         public async Task Paging()
         {
             var client = this.webApplicationFactory.CreateClientWithAuth(

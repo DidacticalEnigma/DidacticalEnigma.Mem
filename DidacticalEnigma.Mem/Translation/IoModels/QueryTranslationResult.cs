@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
@@ -11,7 +12,7 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
             string? highlighterSequence,
             string correlationId,
             QueryTranslationNotesResult? translationNotes,
-            QueryTranslationAssociatedDataResult? associatedData)
+            IDictionary<string, object>? associatedData)
         {
             ProjectName = projectName ?? throw new ArgumentNullException(nameof(projectName));
             Source = source ?? throw new ArgumentNullException(nameof(source));
@@ -34,6 +35,6 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
         
         public QueryTranslationNotesResult? TranslationNotes { get; }
         
-        public QueryTranslationAssociatedDataResult? AssociatedData { get; }
+        public IDictionary<string, object>? AssociatedData { get; }
     }
 }

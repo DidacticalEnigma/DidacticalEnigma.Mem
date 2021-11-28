@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Translation.Extensions;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using DidacticalEnigma.Mem.Translation.Mappings;
 using DidacticalEnigma.Mem.Translation.StoredModels;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -30,7 +32,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             this.currentTimeProvider = currentTimeProvider;
         }
 
-        public async Task<Result<QueryTranslationsResult>> Query(
+        public async Task<Result<QueryTranslationsResult, Unit>> Query(
             string? projectName,
             string? correlationIdStart,
             string? queryText,
@@ -39,12 +41,16 @@ namespace DidacticalEnigma.Mem.Translation.Services
         {
             if (projectName == null && correlationIdStart == null && queryText == null)
             {
-                return Result<QueryTranslationsResult>.Failure(
+                return Result<QueryTranslationsResult, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "one of: projectName, correlationId, queryText must be provided");
             }
             var resultLimit = Math.Min(limit ?? 50, 250);
-            var translations = this.dbContext.TranslationPairs.AsQueryable();
+            var translations = this.dbContext.TranslationPairs
+                .OrderBy(translation => translation.CorrelationId)
+                .AsQueryable();
+            
+            
             if(projectName != null)
                 translations = translations.Where(translationPair => translationPair.Parent.Name == projectName);
             if(correlationIdStart != null)
@@ -55,6 +61,14 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 translations = translations.Where(translationPair =>
                     translationPair.SearchVector.Matches(
                         EF.Functions.PhraseToTsQuery("simple", normalized)));
+            }
+
+            if (paginationToken != null)
+            {
+                var decodedPaginationToken = Encoding.UTF8.GetString(Convert.FromBase64String(paginationToken));
+
+                translations = translations
+                    .Where(translation => string.Compare(decodedPaginationToken, translation.CorrelationId) < 0);
             }
 
             var results = (await translations
@@ -80,51 +94,47 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         target: selection.Target,
                         highlighterSequence: highlighter,
                         correlationId: selection.CorrelationId,
-                        translationNotes: Map(selection.Notes),
+                        translationNotes: Mapper.Map(selection.Notes),
                         associatedData: selection.AssociatedData != null
-                            ? JsonSerializer.Deserialize<QueryTranslationAssociatedDataResult>(selection.AssociatedData)
+                            ? JsonSerializer.Deserialize<IDictionary<string, object>>(selection.AssociatedData)
                             : null);
-                });
+                })
+                .ToList();
+
+            string? newPaginationToken = null;
             
-            return Result<QueryTranslationsResult>.Ok(new QueryTranslationsResult(results));
-
-            QueryTranslationNotesResult? Map(NotesCollection? notes)
+            if (results.Count < limit)
             {
-                if (notes == null)
-                    return null;
-
-                return new QueryTranslationNotesResult()
-                {
-                    Gloss = notes.GlossNotes
-                        .Select(n => new IoGlossNote()
-                        {
-                            Explanation = n.Text,
-                            Foreign = n.Foreign
-                        })
-                        .ToList(),
-                    Normal = notes.NormalNote
-                        .Select(n => new IoNormalNote()
-                        {
-                            Text = n.Text,
-                            SideText = n.SideComment
-                        })
-                        .ToList()
-                };
+                newPaginationToken = null;
             }
+            else
+            {
+                newPaginationToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(results.Last().CorrelationId));
+            }
+
+            var queryTime = this.currentTimeProvider.GetCurrentTime();
+            
+            return Result<QueryTranslationsResult, Unit>.Ok(
+                new QueryTranslationsResult(
+                    results,
+                    newPaginationToken,
+                    queryTime));
+
+
         }
         
-        public async Task<Result<QueryContextsResult>> GetContexts(Guid? id, string? projectName, string? correlationId)
+        public async Task<Result<QueryContextsResult, Unit>> GetContexts(Guid? id, string? projectName, string? correlationId)
         {
             if (id == null && correlationId == null && projectName == null)
             {
-                return Result<QueryContextsResult>.Failure(
+                return Result<QueryContextsResult, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "no parameters are provided");
             }
             
             if (id != null && (correlationId != null || projectName != null))
             {
-                return Result<QueryContextsResult>.Failure(
+                return Result<QueryContextsResult, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "the search can be done either by direct id, or by projectName/correlationId combination");
             }
@@ -165,13 +175,13 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 })
                 .ToList();
             
-            return Result<QueryContextsResult>.Ok(new QueryContextsResult()
+            return Result<QueryContextsResult, Unit>.Ok(new QueryContextsResult()
             {
                 Contexts = contexts
             });
         }
 
-        public async Task<Result<QueryContextResult>> GetContext(Guid id)
+        public async Task<Result<QueryContextResult, Unit>> GetContext(Guid id)
         {
             var contextData = await this.dbContext.Contexts
                 .Where(context => context.Id == id)
@@ -186,13 +196,13 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
             if (contextData == null)
             {
-                return Result<QueryContextResult>.Failure(
+                return Result<QueryContextResult, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "no context found with given id");
             }
 
             await this.dbContext.SaveChangesAsync();
-            return Result<QueryContextResult>.Ok(new QueryContextResult()
+            return Result<QueryContextResult, Unit>.Ok(new QueryContextResult()
             {
                 Id = id,
                 CorrelationId = contextData.CorrelationId,
@@ -203,14 +213,14 @@ namespace DidacticalEnigma.Mem.Translation.Services
             });
         }
 
-        public async Task<Result<Unit>> DeleteContext(Guid id)
+        public async Task<Result<Unit, Unit>> DeleteContext(Guid id)
         {
             var context = await this.dbContext.Contexts
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (context == null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "context not found");
             }
@@ -218,10 +228,10 @@ namespace DidacticalEnigma.Mem.Translation.Services
             this.dbContext.Contexts.Remove(context);
             
             await this.dbContext.SaveChangesAsync();
-            return Result<Unit>.Ok(Unit.Value);
+            return Result<Unit, Unit>.Ok(Unit.Value);
         }
 
-        public async Task<Result<Unit>> DeleteTranslation(string projectName, string correlationId)
+        public async Task<Result<Unit, Unit>> DeleteTranslation(string projectName, string correlationId)
         {
             var translation = await this.dbContext.TranslationPairs
                 .FirstOrDefaultAsync(t =>
@@ -230,7 +240,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             
             if (translation == null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "translation not found");
             }
@@ -238,17 +248,17 @@ namespace DidacticalEnigma.Mem.Translation.Services
             this.dbContext.TranslationPairs.Remove(translation);
             
             await this.dbContext.SaveChangesAsync();
-            return Result<Unit>.Ok(Unit.Value);
+            return Result<Unit, Unit>.Ok(Unit.Value);
         }
 
-        public async Task<Result<Unit>> DeleteProject(string projectName)
+        public async Task<Result<Unit, Unit>> DeleteProject(string projectName)
         {
             var project = await this.dbContext.Projects
                 .FirstOrDefaultAsync(p => p.Name == projectName);
 
             if (project == null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "project not found");
             }
@@ -256,47 +266,76 @@ namespace DidacticalEnigma.Mem.Translation.Services
             this.dbContext.Projects.Remove(project);
             
             await this.dbContext.SaveChangesAsync();
-            return Result<Unit>.Ok(Unit.Value);
+            return Result<Unit, Unit>.Ok(Unit.Value);
         }
 
-        public async Task<Result<Unit>> UpdateTranslation(
+        public async Task<Result<Unit, QueryTranslationResult>> UpdateTranslation(
             string projectName,
             string correlationId,
-            string? source,
-            string? target)
+            UpdateTranslationParams uploadParams)
         {
             var translation = await this.dbContext.TranslationPairs
+                .Include(t => t.Parent)
                 .FirstOrDefaultAsync(t =>
                     t.Parent.Name == projectName &&
                     t.CorrelationId == correlationId);
             
             if (translation == null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, QueryTranslationResult>.Failure(
                     HttpStatusCode.NotFound,
                     "translation not found");
             }
 
-            var currentTime = this.currentTimeProvider.GetCurrentTime(); 
-            
-            if (source != null)
+            var currentTime = this.currentTimeProvider.GetCurrentTime();
+
+            if (uploadParams.LastQueryTime < translation.ModificationTime)
             {
-                translation.Source = source;
-                translation.SearchVector = await this.dbContext.ToTsVector(source);
+                return Result<Unit, QueryTranslationResult>.Failure(
+                    HttpStatusCode.Conflict,
+                    "translation was updated from the time it last requested",
+                    new QueryTranslationResult(
+                        projectName: translation.Parent.Name,
+                        source: translation.Source,
+                        target: translation.Target,
+                        highlighterSequence: null,
+                        correlationId: translation.CorrelationId,
+                        translationNotes: Mapper.Map(translation.Notes),
+                        associatedData: translation.AssociatedData != null
+                            ? JsonSerializer.Deserialize<IDictionary<string, object>>(translation.AssociatedData)
+                            : null));
+            }
+            
+            if (uploadParams.Source != null)
+            {
+                translation.Source = uploadParams.Source;
+                translation.SearchVector = await this.dbContext.ToTsVector(uploadParams.Source);
                 translation.ModificationTime = currentTime;
             }
 
-            if (target != null)
+            if (uploadParams.Target != null)
             {
-                translation.Target = target;
+                translation.Target = uploadParams.Target;
+                translation.ModificationTime = currentTime;
+            }
+            
+            if (uploadParams.TranslationNotes != null)
+            {
+                translation.Notes = Mapper.Map(uploadParams.TranslationNotes);
+                translation.ModificationTime = currentTime;
+            }
+            
+            if (uploadParams.AssociatedData != null)
+            {
+                translation.AssociatedData = JsonSerializer.Serialize(uploadParams.AssociatedData);
                 translation.ModificationTime = currentTime;
             }
 
             await this.dbContext.SaveChangesAsync();
-            return Result<Unit>.Ok(Unit.Value);
+            return Result<Unit, QueryTranslationResult>.Ok(Unit.Value);
         }
 
-        public async Task<Result<FileResult>> GetContextData(Guid id)
+        public async Task<Result<FileResult, Unit>> GetContextData(Guid id)
         {
             var contextData = await this.dbContext.Contexts
                 .Select(context => new
@@ -310,14 +349,14 @@ namespace DidacticalEnigma.Mem.Translation.Services
             
             if (contextData == null)
             {
-                return Result<FileResult>.Failure(
+                return Result<FileResult, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "context not found");
             }
 
             if (contextData.ContentObjectId == null || contextData.MediaType == null)
             {
-                return Result<FileResult>.Failure(
+                return Result<FileResult, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "context has no associated binary data");
             }
@@ -332,7 +371,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
             var lobManager = new NpgsqlLargeObjectManager(connection);
 
-            return Result<FileResult>.Ok(new FileResult()
+            return Result<FileResult, Unit>.Ok(new FileResult()
             {
                 Content = new DisposingStream(
                     await lobManager.OpenReadAsync(contextData.ContentObjectId.Value),
@@ -342,13 +381,13 @@ namespace DidacticalEnigma.Mem.Translation.Services
             });
         }
 
-        public async Task<Result<Unit>> AddProject(string projectName)
+        public async Task<Result<Unit, Unit>> AddProject(string projectName)
         {
             var project = await this.dbContext.Projects.FirstOrDefaultAsync(
                 p => p.Name == projectName);
             if (project != null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.Conflict,
                     "project with a given name already exists");
             }
@@ -359,10 +398,10 @@ namespace DidacticalEnigma.Mem.Translation.Services
             this.dbContext.Projects.Add(project);
             
             await this.dbContext.SaveChangesAsync();
-            return Result<Unit>.Ok(Unit.Value);
+            return Result<Unit, Unit>.Ok(Unit.Value);
         }
 
-        public async Task<Result<AddTranslationsResult>> AddTranslations(
+        public async Task<Result<AddTranslationsResult, Unit>> AddTranslations(
             string projectName,
             IReadOnlyCollection<AddTranslationParams> translations,
             bool allowPartialAdd = false)
@@ -370,7 +409,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             var project = await this.dbContext.Projects.FirstOrDefaultAsync(p => p.Name == projectName);
             if (project == null)
             {
-                return Result<AddTranslationsResult>.Failure(
+                return Result<AddTranslationsResult, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "no such project exists");
             }
@@ -381,7 +420,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
             if (inputTranslationIds.Count != translations.Count)
             {
-                return Result<AddTranslationsResult>.Failure(
+                return Result<AddTranslationsResult, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "attempting to add multiple translations with the same id");
             }
@@ -395,7 +434,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
             if (!allowPartialAdd && alreadyExistingTranslationIds.Count != 0)
             {
-                return Result<AddTranslationsResult>.Failure(
+                return Result<AddTranslationsResult, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "there already exists a translation with given correlation id");
             }
@@ -430,42 +469,18 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         {project.Id},
                         {currentTime},
                         {currentTime},
-                        {JsonSerializer.Serialize(Map(translation.TranslationNotes))}::jsonb,
-                        {JsonSerializer.Serialize(translation.AuxiliaryData)}::jsonb);");
+                        {JsonSerializer.Serialize(Mapper.Map(translation.TranslationNotes))}::jsonb,
+                        {JsonSerializer.Serialize(translation.AssociatedData)}::jsonb);");
             }
             
             await this.dbContext.SaveChangesAsync();
-            return Result<AddTranslationsResult>.Ok(new AddTranslationsResult()
+            return Result<AddTranslationsResult, Unit>.Ok(new AddTranslationsResult()
             {
                 NotAdded = alreadyExistingTranslationIds
             });
-
-            NotesCollection? Map(AddTranslationNotesParams? notes)
-            {
-                if (notes == null)
-                    return null;
-
-                return new NotesCollection()
-                {
-                    GlossNotes = notes.Gloss
-                        .Select(n => new GlossNote()
-                        {
-                            Foreign = n.Foreign,
-                            Text = n.Explanation
-                        })
-                        .ToList(),
-                    NormalNote = notes.Normal
-                        .Select(n => new NormalNote()
-                        {
-                            Text = n.Text,
-                            SideComment = n.SideText
-                        })
-                        .ToList()
-                };
-            }
         }
 
-        public async Task<Result<Unit>> AddContext(
+        public async Task<Result<Unit, Unit>> AddContext(
             Guid id,
             string correlationId,
             string projectName,
@@ -476,14 +491,14 @@ namespace DidacticalEnigma.Mem.Translation.Services
             var context = await this.dbContext.Contexts.FindAsync(id);
             if (context != null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "request with such a guid exists");
             }
 
             if (text == null && mediaType == null && content == null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "either text or content (with its media type) must be specified");
             }
@@ -493,21 +508,21 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
             if (project == null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "project does not exist");
             }
 
             if (content != null && mediaType == null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "if a request provides content, its media type must be specified");
             }
             
             if (content == null && mediaType != null)
             {
-                return Result<Unit>.Failure(
+                return Result<Unit, Unit>.Failure(
                     HttpStatusCode.BadRequest,
                     "no content provided");
             }
@@ -518,7 +533,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 mediaTypeModel = await this.dbContext.MediaTypes.FirstOrDefaultAsync(m => m.MediaType == mediaType);
                 if (mediaTypeModel == null)
                 {
-                    return Result<Unit>.Failure(
+                    return Result<Unit, Unit>.Failure(
                         HttpStatusCode.BadRequest,
                         "media type not acceptable");
                 }
@@ -561,7 +576,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
                 await transaction.CommitAsync();
             }
-            return Result<Unit>.Ok(Unit.Value);
+            return Result<Unit, Unit>.Ok(Unit.Value);
         }
     }
 }

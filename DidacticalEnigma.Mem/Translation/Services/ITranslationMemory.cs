@@ -8,50 +8,49 @@ namespace DidacticalEnigma.Mem.Translation.Services
 {
     public interface ITranslationMemory
     {
-        Task<Result<QueryTranslationsResult>> Query(
+        Task<Result<QueryTranslationsResult, Unit>> Query(
             string? projectName,
             string? correlationIdStart,
             string? queryText,
             string? paginationToken = null,
             int? limit = null);
 
-        Task<Result<Unit>> AddProject(
+        Task<Result<Unit, Unit>> AddProject(
             string projectName);
 
-        Task<Result<AddTranslationsResult>> AddTranslations(
+        Task<Result<AddTranslationsResult, Unit>> AddTranslations(
             string projectName,
             IReadOnlyCollection<AddTranslationParams> translations,
             bool allowPartialAdd = false);
 
-        Task<Result<Unit>> AddContext(Guid id,
+        Task<Result<Unit, Unit>> AddContext(Guid id,
             string correlationId,
             string projectName,
             Stream? context,
             string? mediaType,
             string? text);
 
-        Task<Result<QueryContextsResult>> GetContexts(
+        Task<Result<QueryContextsResult, Unit>> GetContexts(
             Guid? id,
             string? projectName,
             string? correlationId);
         
-        Task<Result<FileResult>> GetContextData(
+        Task<Result<FileResult, Unit>> GetContextData(
             Guid id);
 
-        Task<Result<Unit>> DeleteContext(
+        Task<Result<Unit, Unit>> DeleteContext(
             Guid id);
 
-        Task<Result<Unit>> DeleteTranslation(
+        Task<Result<Unit, Unit>> DeleteTranslation(
             string projectName,
             string correlationId);
         
-        Task<Result<Unit>> DeleteProject(
+        Task<Result<Unit, Unit>> DeleteProject(
             string projectName);
 
-        Task<Result<Unit>> UpdateTranslation(
+        Task<Result<Unit, QueryTranslationResult>> UpdateTranslation(
             string projectName,
             string correlationId,
-            string? source,
-            string? target);
+            UpdateTranslationParams uploadParams);
     }
 }

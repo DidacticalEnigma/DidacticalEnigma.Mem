@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
@@ -12,6 +13,6 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
 
         public AddTranslationNotesParams? TranslationNotes { get; set; }
         
-        public AddTranslationAuxiliaryDataParams? AuxiliaryData { get; set; }
+        public IDictionary<string, object>? AssociatedData { get; set; }
     }
 }

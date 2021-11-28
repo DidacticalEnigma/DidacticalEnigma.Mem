@@ -144,12 +144,11 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             var result = await translationMemory.UpdateTranslation(
                 projectName,
                 correlationId,
-                request.Source,
-                request.Target);
+                request);
             return Unwrap(result, new UpdateTranslationResult());
         }
 
-        private ActionResult<T> Unwrap<T>(Result<T> result) where T : notnull
+        private ActionResult<T> Unwrap<T, E>(Result<T, E> result) where T : notnull
         {
             if (result.Error == null)
             {
@@ -161,7 +160,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             }
         }
         
-        private ActionResult<T> Unwrap<T>(Result<Unit> result, T value)
+        private ActionResult<T> Unwrap<T, E>(Result<Unit, E> result, T value)
         {
             if (result.Error == null)
             {
@@ -173,7 +172,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             }
         }
         
-        private ActionResult UnwrapFile(Result<FileResult> result)
+        private ActionResult UnwrapFile<E>(Result<FileResult, E> result)
         {
             if (result.Error == null)
             {
