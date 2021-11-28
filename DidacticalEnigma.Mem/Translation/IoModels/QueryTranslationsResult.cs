@@ -4,14 +4,18 @@ using System.Linq;
 
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
-    public class QueryResult
+    public class QueryTranslationsResult
     {
-        public QueryResult(
-            IEnumerable<QueryTranslationResult> translations)
+        public QueryTranslationsResult(
+            IEnumerable<QueryTranslationResult> translations,
+            string? paginationToken = null)
         {
             Translations = translations ?? throw new ArgumentNullException(nameof(translations));
+            PaginationToken = paginationToken;
         }
 
         public IEnumerable<QueryTranslationResult> Translations { get; }
+        
+        public string? PaginationToken { get; }
     }
 }

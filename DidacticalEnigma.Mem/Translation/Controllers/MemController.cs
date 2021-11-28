@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Configurations;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
+using FileResult = DidacticalEnigma.Mem.Translation.IoModels.FileResult;
 
 namespace DidacticalEnigma.Mem.Translation.Controllers
 {
@@ -25,7 +27,6 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.AddProject(projectName);
-            await translationMemory.SaveChanges();
             return Unwrap(result, new AddProjectResult());
         }
         
@@ -38,53 +39,40 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.AddTranslations(projectName, request.Translations, request.AllowPartialAdd);
-            if (result.Error != null)
-            {
-                return Unwrap(result);
-            }
-
-            await translationMemory.SaveChanges();
-            return Ok(result.Value);
+            return Unwrap(result);
         }
 
-        [SwaggerOperation(OperationId = "AddContexts")]
+        [SwaggerOperation(OperationId = "AddContext")]
         [HttpPost("contexts")]
         [Authorize("ModifyContexts")]
-        public async Task<ActionResult<AddContextsResult>> AddContexts(
-            [FromBody] AddContextsParams request,
+        public async Task<ActionResult<AddContextResult>> AddContext(
+            [FromForm] AddContextParams request,
             [FromServices] ITranslationMemory translationMemory)
         {
-            foreach (var addContext in request.Contexts ?? Enumerable.Empty<AddContextParams>())
-            {
-                var result = await translationMemory.AddContext(
-                    addContext.Id,
-                    addContext.Content,
-                    addContext.MediaType,
-                    addContext.Text);
-                if (result.Error != null)
-                {
-                    return Unwrap(result, new AddContextsResult());
-                }
-            }
-            await translationMemory.SaveChanges();
-            return Ok(new AddContextsResult());
+            var result = await translationMemory.AddContext(
+                request.Id,
+                request.CorrelationId,
+                request.ProjectName,
+                request.Content.OpenReadStream(),
+                request.Content.ContentType,
+                request.Text);
+            return Unwrap(result, new AddContextResult());
         }
     
         [SwaggerOperation(OperationId = "Query")]
         [HttpGet("translations")]
         [Authorize("ReadTranslations")]
-        public async Task<ActionResult<QueryResult>> Query(
+        public async Task<ActionResult<QueryTranslationsResult>> Query(
             [FromQuery] string? projectName,
             [FromQuery] string? correlationId,
             [FromQuery] string query,
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.Query(projectName, correlationId, query);
-            
             return Unwrap(result);
         }
         
-        [SwaggerOperation(OperationId = "GetContext")]
+        [SwaggerOperation(OperationId = "GetContexts")]
         [HttpGet("contexts")]
         [Authorize("ReadContexts")]
         public async Task<ActionResult<QueryContextResult>> GetContext(
@@ -92,10 +80,31 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.GetContext(id);
-            
             return Unwrap(result);
         }
         
+        [SwaggerOperation(OperationId = "GetContexts")]
+        [HttpGet("contexts")]
+        [Authorize("ReadContexts")]
+        public async Task<ActionResult<QueryContextsResult>> GetContexts(
+            [FromQuery] string correlationId,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.GetContexts(correlationId);
+            return Unwrap(result);
+        }
+        
+        [SwaggerOperation(OperationId = "GetContextData")]
+        [HttpGet("contexts")]
+        [Authorize("ReadContexts")]
+        public async Task<ActionResult> GetContextData(
+            [FromQuery] Guid id,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.GetContextData(id);
+            return UnwrapFile(result);
+        }
+
         [SwaggerOperation(OperationId = "DeleteContext")]
         [HttpDelete("contexts")]
         [Authorize("ModifyContexts")]
@@ -104,7 +113,6 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.DeleteContext(id);
-            await translationMemory.SaveChanges();
             return Unwrap(result, new DeleteContextResult());
         }
         
@@ -117,7 +125,6 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.DeleteTranslation(projectName, correlationId);
-            await translationMemory.SaveChanges();
             return Unwrap(result, new DeleteTranslationResult());
         }
         
@@ -129,7 +136,6 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromServices] ITranslationMemory translationMemory)
         {
             var result = await translationMemory.DeleteProject(projectName);
-            await translationMemory.SaveChanges();
             return Unwrap(result, new DeleteProjectResult());
         }
         
@@ -146,9 +152,7 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
                 projectName,
                 correlationId,
                 request.Source,
-                request.Target,
-                request.Context);
-            await translationMemory.SaveChanges();
+                request.Target);
             return Unwrap(result, new UpdateTranslationResult());
         }
 
@@ -169,6 +173,19 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             if (result.Error == null)
             {
                 return Ok(value);
+            }
+            else
+            {
+                return this.StatusCode((int)result.Error.Code, result.Error);
+            }
+        }
+        
+        private ActionResult UnwrapFile(Result<FileResult> result)
+        {
+            if (result.Error == null)
+            {
+                var value = result.Value!;
+                return File(value.Content, value.MediaType, value.FileName);
             }
             else
             {

@@ -18,7 +18,8 @@ namespace DidacticalEnigma.Mem.Authentication
         }
 
         private Task HandleRequirementAsync(AuthorizationHandlerContext context,
-            AuthConfigurationPolicyRequirement requirement, CompositeOrRequirement compositeOrRequirement)
+            AuthConfigurationPolicyRequirement requirement,
+            CompositeOrRequirement compositeOrRequirement)
         {
             if (requirement.SatisfiesCheck(authConfiguration))
             {
@@ -28,7 +29,9 @@ namespace DidacticalEnigma.Mem.Authentication
             return Task.CompletedTask;
         }
 
-        private Task HandleRequirementAsync(AuthorizationHandlerContext context, JwtPermissionRequirement requirement,
+        private Task HandleRequirementAsync(
+            AuthorizationHandlerContext context,
+            JwtPermissionRequirement requirement,
             CompositeOrRequirement compositeOrRequirement)
         {
             var issuer = authConfiguration.Authority;

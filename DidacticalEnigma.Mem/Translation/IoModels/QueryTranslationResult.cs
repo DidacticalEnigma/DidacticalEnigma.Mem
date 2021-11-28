@@ -10,14 +10,16 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
             string? target,
             string? highlighterSequence,
             string correlationId,
-            Guid? context)
+            QueryTranslationNotesResult? translationNotes,
+            QueryTranslationAssociatedDataResult? associatedData)
         {
             ProjectName = projectName ?? throw new ArgumentNullException(nameof(projectName));
             Source = source ?? throw new ArgumentNullException(nameof(source));
             Target = target;
             HighlighterSequence = highlighterSequence;
             CorrelationId = correlationId;
-            Context = context;
+            TranslationNotes = translationNotes;
+            AssociatedData = associatedData;
         }
 
         public string ProjectName { get; }
@@ -30,6 +32,8 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
         
         public string CorrelationId { get; }
         
-        public Guid? Context { get; }
+        public QueryTranslationNotesResult? TranslationNotes { get; }
+        
+        public QueryTranslationAssociatedDataResult? AssociatedData { get; }
     }
 }

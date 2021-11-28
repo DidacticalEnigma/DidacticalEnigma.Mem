@@ -9,7 +9,9 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
         public string? Target { get; set; }
         
         public string CorrelationId { get; set; }
+
+        public AddTranslationNotesParams? TranslationNotes { get; set; }
         
-        public Guid? Context { get; set; }
+        public AddTranslationAuxiliaryDataParams? AuxiliaryData { get; set; }
     }
 }

@@ -21,15 +21,15 @@ namespace DidacticalEnigma.Mem.Translation.StoredModels
         public string? Target { get; set; }
         
         public Project Parent { get; set; }
-        
-        public Context? Context { get; set; }
-        
-        public Guid? ContextId { get; set; }
-        
+
         public int ParentId { get; set; }
         
         public DateTime CreationTime { get; set; }
         
         public DateTime ModificationTime { get; set; }
+        
+        public NotesCollection? Notes { get; set; }
+        
+        public string? AssociatedData { get; set; }
     }
 }

@@ -1,11 +1,14 @@
 ﻿using System;
+using DidacticalEnigma.Mem.Translation.StoredModels;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
 
+#nullable disable
+
 namespace DidacticalEnigma.Mem.Migrations
 {
-    public partial class InitialMigration : Migration
+    public partial class NewConcept : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -13,9 +16,10 @@ namespace DidacticalEnigma.Mem.Migrations
                 name: "MediaTypes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    MediaType = table.Column<string>(maxLength: 64, nullable: false)
+                    MediaType = table.Column<string>(type: "text", nullable: false),
+                    Extension = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -26,7 +30,7 @@ namespace DidacticalEnigma.Mem.Migrations
                 name: "NpgsqlQueries",
                 columns: table => new
                 {
-                    Vec = table.Column<NpgsqlTsVector>(nullable: false)
+                    Vec = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -36,9 +40,9 @@ namespace DidacticalEnigma.Mem.Migrations
                 name: "Projects",
                 columns: table => new
                 {
-                    Id = table.Column<int>(nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(maxLength: 32, nullable: false)
+                    Name = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -49,10 +53,12 @@ namespace DidacticalEnigma.Mem.Migrations
                 name: "Contexts",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(nullable: false),
-                    Text = table.Column<string>(maxLength: 512, nullable: true),
-                    Content = table.Column<byte[]>(type: "bytea", nullable: true),
-                    MediaTypeId = table.Column<int>(nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProjectId = table.Column<int>(type: "integer", nullable: false),
+                    CorrelationId = table.Column<string>(type: "text", nullable: false),
+                    Text = table.Column<string>(type: "text", nullable: true),
+                    ContentObjectId = table.Column<long>(type: "bigint", nullable: true),
+                    MediaTypeId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -61,31 +67,33 @@ namespace DidacticalEnigma.Mem.Migrations
                         name: "FK_Contexts_MediaTypes_MediaTypeId",
                         column: x => x.MediaTypeId,
                         principalTable: "MediaTypes",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Contexts_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
                 name: "TranslationPairs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(nullable: false),
-                    CorrelationId = table.Column<string>(maxLength: 256, nullable: false),
-                    Source = table.Column<string>(maxLength: 4096, nullable: false),
-                    SearchVector = table.Column<NpgsqlTsVector>(maxLength: 8192, nullable: false),
-                    Target = table.Column<string>(maxLength: 4096, nullable: true),
-                    ContextId = table.Column<Guid>(nullable: true),
-                    ParentId = table.Column<int>(nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CorrelationId = table.Column<string>(type: "text", nullable: false),
+                    Source = table.Column<string>(type: "text", nullable: false),
+                    SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false),
+                    Target = table.Column<string>(type: "text", nullable: true),
+                    ParentId = table.Column<int>(type: "integer", nullable: false),
+                    CreationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ModificationTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Notes = table.Column<NotesCollection>(type: "jsonb", nullable: true),
+                    AssociatedData = table.Column<string>(type: "jsonb", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_TranslationPairs", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TranslationPairs_Contexts_ContextId",
-                        column: x => x.ContextId,
-                        principalTable: "Contexts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_TranslationPairs_Projects_ParentId",
                         column: x => x.ParentId,
@@ -96,17 +104,23 @@ namespace DidacticalEnigma.Mem.Migrations
 
             migrationBuilder.InsertData(
                 table: "MediaTypes",
-                columns: new[] { "Id", "MediaType" },
+                columns: new[] { "Id", "Extension", "MediaType" },
                 values: new object[,]
                 {
-                    { 1, "image/jpeg" },
-                    { 2, "image/png" }
+                    { 1, "jpg", "image/jpeg" },
+                    { 2, "png", "image/png" }
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Contexts_MediaTypeId",
                 table: "Contexts",
                 column: "MediaTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Contexts_ProjectId_CorrelationId",
+                table: "Contexts",
+                columns: new[] { "ProjectId", "CorrelationId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaTypes_MediaType",
@@ -121,11 +135,6 @@ namespace DidacticalEnigma.Mem.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_TranslationPairs_ContextId",
-                table: "TranslationPairs",
-                column: "ContextId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_TranslationPairs_CorrelationId",
                 table: "TranslationPairs",
                 column: "CorrelationId");
@@ -135,10 +144,19 @@ namespace DidacticalEnigma.Mem.Migrations
                 table: "TranslationPairs",
                 columns: new[] { "ParentId", "CorrelationId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TranslationPairs_SearchVector",
+                table: "TranslationPairs",
+                column: "SearchVector")
+                .Annotation("Npgsql:IndexMethod", "GIN");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Contexts");
+
             migrationBuilder.DropTable(
                 name: "NpgsqlQueries");
 
@@ -146,13 +164,10 @@ namespace DidacticalEnigma.Mem.Migrations
                 name: "TranslationPairs");
 
             migrationBuilder.DropTable(
-                name: "Contexts");
+                name: "MediaTypes");
 
             migrationBuilder.DropTable(
                 name: "Projects");
-
-            migrationBuilder.DropTable(
-                name: "MediaTypes");
         }
     }
 }

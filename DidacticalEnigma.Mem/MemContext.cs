@@ -28,14 +28,15 @@ namespace DidacticalEnigma.Mem
             {
                 var mediaTypeBuilder = modelBuilder.Entity<AllowedMediaType>();
                 mediaTypeBuilder.HasKey(mediaType => mediaType.Id);
-                mediaTypeBuilder.Property(mediaType => mediaType.MediaType).HasMaxLength(64).IsRequired();
+                mediaTypeBuilder.Property(mediaType => mediaType.MediaType).IsRequired();
+                mediaTypeBuilder.Property(mediaType => mediaType.Extension).IsRequired();
                 mediaTypeBuilder.HasIndex(mediaType => mediaType.MediaType).IsUnique();
                 mediaTypeBuilder.HasData(AllowedMediaType.GetAllowedMediaTypes());
             }
             {
                 var projectBuilder = modelBuilder.Entity<Project>();
                 projectBuilder.HasKey(project => project.Id);
-                projectBuilder.Property(project => project.Name).HasMaxLength(32);
+                projectBuilder.Property(project => project.Name);
                 projectBuilder.HasIndex(project => project.Name).IsUnique();
                 projectBuilder
                     .HasMany(project => project.Translations)
@@ -46,31 +47,33 @@ namespace DidacticalEnigma.Mem
             {
                 var translationPairBuilder = modelBuilder.Entity<Translation.StoredModels.Translation>();
                 translationPairBuilder.HasKey(translationPair => translationPair.Id);
-                translationPairBuilder.Property(translationPair => translationPair.Source).HasMaxLength(4096).IsRequired();
-                translationPairBuilder.Property(translationPair => translationPair.SearchVector).HasMaxLength(8192).IsRequired();
-                translationPairBuilder.Property(translationPair => translationPair.Target).HasMaxLength(4096).IsRequired(false);
-                translationPairBuilder.Property(translationPair => translationPair.CorrelationId).HasMaxLength(256);
-                translationPairBuilder.Property(translationPair => translationPair.CreationTime).IsRequired(true);
-                translationPairBuilder.Property(translationPair => translationPair.ModificationTime).IsRequired(true);
-                
-                translationPairBuilder
-                    .HasOne(translationPair => translationPair.Context)
-                    .WithMany()
-                    .HasForeignKey(translationPair => translationPair.ContextId)
-                    .OnDelete(DeleteBehavior.SetNull)
-                    .IsRequired(false);
-                
+                translationPairBuilder.Property(translationPair => translationPair.Source).IsRequired();
+                translationPairBuilder.Property(translationPair => translationPair.SearchVector).IsRequired();
+                translationPairBuilder.Property(translationPair => translationPair.Target).IsRequired(false);
+                translationPairBuilder.Property(translationPair => translationPair.CorrelationId);
+                translationPairBuilder.Property(translationPair => translationPair.CreationTime).IsRequired();
+                translationPairBuilder.Property(translationPair => translationPair.ModificationTime).IsRequired();
+                translationPairBuilder.Property(translationPair => translationPair.Notes).HasColumnType("jsonb").IsRequired(false);
+                translationPairBuilder.Property(translationPair => translationPair.AssociatedData).HasColumnType("jsonb").IsRequired(false);
+
                 translationPairBuilder.HasIndex(translationPair => translationPair.CorrelationId);
                 translationPairBuilder.HasIndex(translationPair => new{translationPair.ParentId,translationPair.CorrelationId}).IsUnique();
+                translationPairBuilder.HasIndex(translationPair => translationPair.SearchVector).HasMethod("GIN");
             }
             {
                 var contextBuilder = modelBuilder.Entity<Context>();
                 contextBuilder.HasKey(context => context.Id);
-                contextBuilder.Property(context => context.Content).HasColumnType("bytea").IsRequired(false);
-                contextBuilder.Property(context => context.Text).HasMaxLength(512).IsRequired(false);
+                contextBuilder.Property(context => context.Text).IsRequired(false);
                 contextBuilder
                     .HasOne(context => context.MediaType)
                     .WithMany();
+                contextBuilder.Property(context => context.ContentObjectId).IsRequired(false);
+                contextBuilder
+                    .HasOne(context => context.Project)
+                    .WithMany()
+                    .HasForeignKey(context => context.ProjectId);
+                
+                contextBuilder.HasIndex(context => new{context.ProjectId,context.CorrelationId}).IsUnique();
             }
             {
                 var npgsqlQueryBuilder = modelBuilder.Entity<NpgsqlQuery>();
