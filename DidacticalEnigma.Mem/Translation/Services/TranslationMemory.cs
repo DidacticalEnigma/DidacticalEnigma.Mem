@@ -35,7 +35,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             string? correlationIdStart,
             string? queryText,
             string? paginationToken = null,
-            int limit = 50)
+            int? limit = null)
         {
             if (projectName == null && correlationIdStart == null && queryText == null)
             {
@@ -43,7 +43,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
                     HttpStatusCode.BadRequest,
                     "one of: projectName, correlationId, queryText must be provided");
             }
-            limit = Math.Min(limit, 250);
+            var resultLimit = Math.Min(limit ?? 50, 250);
             var translations = this.dbContext.TranslationPairs.AsQueryable();
             if(projectName != null)
                 translations = translations.Where(translationPair => translationPair.Parent.Name == projectName);
@@ -58,7 +58,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             }
 
             var results = (await translations
-                    .Take(limit)
+                    .Take(resultLimit)
                     .Select(translationPair => new
                     {
                         ParentName = translationPair.Parent.Name,
@@ -113,10 +113,37 @@ namespace DidacticalEnigma.Mem.Translation.Services
             }
         }
         
-        public async Task<Result<QueryContextsResult>> GetContexts(string correlationId)
+        public async Task<Result<QueryContextsResult>> GetContexts(Guid? id, string? projectName, string? correlationId)
         {
-            var contexts = (await this.dbContext.Contexts
-                    .Where(context => correlationId.StartsWith(context.CorrelationId))
+            if (id == null && correlationId == null && projectName == null)
+            {
+                return Result<QueryContextsResult>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "no parameters are provided");
+            }
+            
+            if (id != null && (correlationId != null || projectName != null))
+            {
+                return Result<QueryContextsResult>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "the search can be done either by direct id, or by projectName/correlationId combination");
+            }
+            
+            var filteredContexts = this.dbContext.Contexts.AsQueryable();
+
+            if (id != null)
+            {
+                filteredContexts = filteredContexts.Where(context => context.Id == id);
+            }
+            
+            if (correlationId != null && projectName != null)
+            {
+                filteredContexts = filteredContexts.Where(context =>
+                    context.Project.Name == projectName &&
+                    context.CorrelationId.StartsWith(correlationId));
+            }
+            
+            var contexts = (await filteredContexts
                     .Select(context => new
                     {
                         Id = context.Id,
@@ -295,13 +322,21 @@ namespace DidacticalEnigma.Mem.Translation.Services
                     "context has no associated binary data");
             }
             
+            await this.dbContext.Database.OpenConnectionAsync();
             var connection = (NpgsqlConnection)this.dbContext.Database.GetDbConnection();
+            // we have to begin a transaction, in order for LOB access to work
+            // (otherwise we get a "invalid large-object descriptor: 0" error)
+            // but we can't dispose it in this method, so we wrap the created stream
+            // in a wrapper that disposes another object after disposing the stream
+            var transaction = await this.dbContext.Database.BeginTransactionAsync();
 
             var lobManager = new NpgsqlLargeObjectManager(connection);
 
             return Result<FileResult>.Ok(new FileResult()
             {
-                Content = await lobManager.OpenReadAsync(contextData.ContentObjectId.Value),
+                Content = new DisposingStream(
+                    await lobManager.OpenReadAsync(contextData.ContentObjectId.Value),
+                    transaction),
                 FileName = $"{contextData.Id}.{contextData.Extension}",
                 MediaType = contextData.MediaType
             });
@@ -490,32 +525,42 @@ namespace DidacticalEnigma.Mem.Translation.Services
             }
 
             uint? contentObjectId = null;
-            if (content != null)
+            
+            await this.dbContext.Database.OpenConnectionAsync();
+            var connection = (NpgsqlConnection)this.dbContext.Database.GetDbConnection();
+            using (var transaction = await connection.BeginTransactionAsync())
             {
-                var connection = (NpgsqlConnection)this.dbContext.Database.GetDbConnection();
-
-                var lobManager = new NpgsqlLargeObjectManager(connection);
-                var contentOid = await lobManager.CreateAsync(0);
-
-                using (var stream = await lobManager.OpenReadWriteAsync(contentOid))
+                if (content != null)
                 {
-                    await content.CopyToAsync(stream);
+                    var lobManager = new NpgsqlLargeObjectManager(connection);
+                    var contentOid = await lobManager.CreateAsync(0);
+
+                    using (var stream = await lobManager.OpenReadWriteAsync(contentOid))
+                    {
+                        await content.CopyToAsync(stream);
+                    }
+
+                    contentObjectId = contentOid;
                 }
 
-                contentObjectId = contentOid;
-            }
+                await this.dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $@"INSERT INTO ""Contexts"" (
+                        ""Id"",
+                        ""ProjectId"",
+                        ""CorrelationId"",
+                        ""Text"",
+                        ""ContentObjectId"",
+                        ""MediaTypeId"")
+                    VALUES (
+                        {id},
+                        {project.Id},
+                        {correlationId},
+                        {text},
+                        {contentObjectId},
+                        {mediaTypeModel?.Id});");
 
-            this.dbContext.Contexts.Add(new Context()
-            {
-                Id = id,
-                ContentObjectId = contentObjectId,
-                MediaType = mediaTypeModel,
-                Text = text,
-                CorrelationId = correlationId,
-                Project = project
-            });
-            
-            await this.dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
             return Result<Unit>.Ok(Unit.Value);
         }
     }

@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -51,6 +53,19 @@ namespace DidacticalEnigma.Mem.IntegrationTests
             });
         }
 
+        private ConcurrentDictionary<object, bool> calledFunctions =
+            new ConcurrentDictionary<object, bool>();
+
+        public async Task CallOnce<T>(Func<T, Task> function, T param)
+        {
+            if (calledFunctions.TryAdd(function, true))
+            {
+                await function(param);
+            }
+        }
+
+        private object databaseLocker = new object();
+        
         private bool databaseInitialized = false;
 
         public void PrepareDatabase()
@@ -59,15 +74,18 @@ namespace DidacticalEnigma.Mem.IntegrationTests
             {
                 return;
             }
-            
-            using (var scope = this.Services.CreateScope())
+
+            lock (databaseLocker)
             {
-                var db = scope.ServiceProvider.GetRequiredService<MemContext>();
-                db.Database.Migrate();
+                using (var scope = this.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<MemContext>();
+                    db.Database.Migrate();
 
-                DatabaseInitializer.InitializeDb(db);
+                    DatabaseInitializer.InitializeDb(db);
 
-                databaseInitialized = true;
+                    databaseInitialized = true;
+                }
             }
         }
 

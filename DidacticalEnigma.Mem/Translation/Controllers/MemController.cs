@@ -65,37 +65,30 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
         public async Task<ActionResult<QueryTranslationsResult>> Query(
             [FromQuery] string? projectName,
             [FromQuery] string? correlationId,
-            [FromQuery] string query,
+            [FromQuery] string? query,
+            [FromQuery] string? paginationToken,
+            [FromQuery] int? limit,
             [FromServices] ITranslationMemory translationMemory)
         {
-            var result = await translationMemory.Query(projectName, correlationId, query);
+            var result = await translationMemory.Query(projectName, correlationId, query, paginationToken, limit ?? 50);
             return Unwrap(result);
         }
         
         [SwaggerOperation(OperationId = "GetContexts")]
         [HttpGet("contexts")]
         [Authorize("ReadContexts")]
-        public async Task<ActionResult<QueryContextResult>> GetContext(
-            [FromQuery] Guid id,
+        public async Task<ActionResult<QueryContextsResult>> GetContext(
+            [FromQuery] Guid? id,
+            [FromQuery] string? projectId,
+            [FromQuery] string? correlationId,
             [FromServices] ITranslationMemory translationMemory)
         {
-            var result = await translationMemory.GetContext(id);
+            var result = await translationMemory.GetContexts(id, projectId, correlationId);
             return Unwrap(result);
         }
-        
-        [SwaggerOperation(OperationId = "GetContexts")]
-        [HttpGet("contexts")]
-        [Authorize("ReadContexts")]
-        public async Task<ActionResult<QueryContextsResult>> GetContexts(
-            [FromQuery] string correlationId,
-            [FromServices] ITranslationMemory translationMemory)
-        {
-            var result = await translationMemory.GetContexts(correlationId);
-            return Unwrap(result);
-        }
-        
+
         [SwaggerOperation(OperationId = "GetContextData")]
-        [HttpGet("contexts")]
+        [HttpGet("contexts/data")]
         [Authorize("ReadContexts")]
         public async Task<ActionResult> GetContextData(
             [FromQuery] Guid id,

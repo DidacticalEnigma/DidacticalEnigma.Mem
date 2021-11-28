@@ -11,9 +11,9 @@ namespace DidacticalEnigma.Mem.Translation.Services
         Task<Result<QueryTranslationsResult>> Query(
             string? projectName,
             string? correlationIdStart,
-            string queryText,
+            string? queryText,
             string? paginationToken = null,
-            int limit = 50);
+            int? limit = null);
 
         Task<Result<Unit>> AddProject(
             string projectName);
@@ -30,11 +30,10 @@ namespace DidacticalEnigma.Mem.Translation.Services
             string? mediaType,
             string? text);
 
-        Task<Result<QueryContextResult>> GetContext(
-            Guid id);
-
         Task<Result<QueryContextsResult>> GetContexts(
-            string correlationId);
+            Guid? id,
+            string? projectName,
+            string? correlationId);
         
         Task<Result<FileResult>> GetContextData(
             Guid id);
