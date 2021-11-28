@@ -8,40 +8,33 @@ namespace DidacticalEnigma.Mem.IntegrationTests
 {
     public static class DatabaseInitializer
     {
+        private static object databaseLocker = new object();
+        
+        private static bool databaseInitialized = false;
+        
         public static void InitializeDb(MemContext db)
         {
-            Reset(db);
+            lock (databaseLocker)
+            {
+                if (databaseInitialized)
+                {
+                    return;
+                }
+                
+                db.Database.Migrate();
+                
+                Reset(db);
 
-            QueryTranslationsTests.Initialize(db);
+                QueryTranslationsTests.Initialize(db);
             
-            db.SaveChanges();
+                db.SaveChanges();
+
+                databaseInitialized = true;
+            }
         }
 
-        public static void Reset(MemContext db)
+        private static void Reset(MemContext db)
         {
-            db.Database.OpenConnection();
-            var conn = (NpgsqlConnection)db.Database.GetDbConnection();
-            var lobManager = new NpgsqlLargeObjectManager(conn);
-            var lobs = db.Contexts.Select(context => context.ContentObjectId).ToList();
-            using (var transaction = conn.BeginTransaction())
-            {
-                foreach (var oid in lobs)
-                {
-                    if (oid != null)
-                    {
-                        try
-                        {
-                            lobManager.Unlink(oid.Value);
-                        }
-                        catch (Exception e)
-                        {
-                            // do nothing when the object does not exist
-                        }
-                    }
-                }
-                transaction.Commit();
-            }
-
             db.TranslationPairs.RemoveRange(db.TranslationPairs);
             db.Contexts.RemoveRange(db.Contexts);
             db.Projects.RemoveRange(db.Projects);

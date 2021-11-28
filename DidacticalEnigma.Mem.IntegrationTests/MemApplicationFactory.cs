@@ -64,28 +64,12 @@ namespace DidacticalEnigma.Mem.IntegrationTests
             }
         }
 
-        private object databaseLocker = new object();
-        
-        private bool databaseInitialized = false;
-
         public void PrepareDatabase()
         {
-            if (databaseInitialized)
+            using (var scope = this.Services.CreateScope())
             {
-                return;
-            }
-
-            lock (databaseLocker)
-            {
-                using (var scope = this.Services.CreateScope())
-                {
-                    var db = scope.ServiceProvider.GetRequiredService<MemContext>();
-                    db.Database.Migrate();
-
-                    DatabaseInitializer.InitializeDb(db);
-
-                    databaseInitialized = true;
-                }
+                var db = scope.ServiceProvider.GetRequiredService<MemContext>();
+                DatabaseInitializer.InitializeDb(db);
             }
         }
 
