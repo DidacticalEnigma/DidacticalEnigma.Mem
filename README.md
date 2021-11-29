@@ -24,6 +24,7 @@ Configuration
 - `read:contexts` - Can read the data behind a context
 - `read:listOfProjects` - Can enumerate all projects in the application
 - `read:translations` - Can read translations
+- `modify:categories` - Can add, modify and remove categories
 
 Note that in addition to the permissions in the token, `AuthConfiguration:AnonymousUsersCanReadTranslations` and `AuthConfiguration:AnonymousUsersCanReadContexts` control whether anonymous users, without providing any kind of token, are allowed to access translations and contexts.
 

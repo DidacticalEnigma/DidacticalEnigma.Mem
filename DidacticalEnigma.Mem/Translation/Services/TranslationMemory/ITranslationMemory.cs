@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Translation.IoModels;
 
-namespace DidacticalEnigma.Mem.Translation.Services
+namespace DidacticalEnigma.Mem.Translation.Services.TranslationMemory
 {
     public interface ITranslationMemory
     {

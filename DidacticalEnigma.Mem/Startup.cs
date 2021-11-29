@@ -5,6 +5,11 @@ using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Authentication;
 using DidacticalEnigma.Mem.Configurations;
 using DidacticalEnigma.Mem.Translation.Services;
+using DidacticalEnigma.Mem.Translation.Services.TranslationMemory;
+using DidacticalEnigma.Mem.Translation.Services.TranslationMemory.Categories;
+using DidacticalEnigma.Mem.Translation.Services.TranslationMemory.Contexts;
+using DidacticalEnigma.Mem.Translation.Services.TranslationMemory.Projects;
+using DidacticalEnigma.Mem.Translation.Services.TranslationMemory.Translations;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -86,6 +91,20 @@ namespace DidacticalEnigma.Mem
                     options.Audience = authConfiguration.Audience;
                 });
             
+            services.AddScoped<AddTranslations>();
+            services.AddScoped<QueryTranslations>();
+            services.AddScoped<GetContexts>();
+            services.AddScoped<DeleteContext>();
+            services.AddScoped<UpdateTranslation>();
+            services.AddScoped<AddProject>();
+            services.AddScoped<AddContext>();
+            services.AddScoped<GetContextData>();
+            services.AddScoped<DeleteTranslation>();
+            services.AddScoped<DeleteProject>();
+            services.AddScoped<QueryCategories>();
+            services.AddScoped<AddCategories>();
+            services.AddScoped<DeleteCategory>();
+            
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(
@@ -123,6 +142,13 @@ namespace DidacticalEnigma.Mem
                         policy.Requirements.Add(
                             new CompositeOrRequirement(
                                 new JwtPermissionRequirement("modify:contexts"))));
+                
+                options.AddPolicy(
+                    "ModifyCategories",
+                    policy =>
+                        policy.Requirements.Add(
+                            new CompositeOrRequirement(
+                                new JwtPermissionRequirement("modify:categories"))));
                 
                 options.AddPolicy(
                     "ReadContexts",

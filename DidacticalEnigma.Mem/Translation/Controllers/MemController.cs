@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Configurations;
 using DidacticalEnigma.Mem.Translation.IoModels;
 using DidacticalEnigma.Mem.Translation.Services;
+using DidacticalEnigma.Mem.Translation.Services.TranslationMemory;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -147,6 +148,45 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
                 correlationId,
                 request);
             return Unwrap(result, new UpdateTranslationResult());
+        }
+        
+        [SwaggerOperation(OperationId = "AddCategories")]
+        [HttpPost("categories")]
+        [Authorize("ModifyCategories")]
+        public async Task<ActionResult<AddCategoriesResult>> AddCategories(
+            [FromQuery] string projectName,
+            [FromBody] AddCategoriesParams request,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.AddCategories(
+                projectName,
+                request);
+            return Unwrap(result, new AddCategoriesResult());
+        }
+        
+        [SwaggerOperation(OperationId = "DeleteCategory")]
+        [HttpDelete("categories")]
+        [Authorize("ModifyCategories")]
+        public async Task<ActionResult<DeleteCategoryResult>> AddCategories(
+            [FromQuery] string projectName,
+            [FromQuery] Guid categoryId,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.DeleteCategory(
+                categoryId);
+            return Unwrap(result, new DeleteCategoryResult());
+        }
+        
+        [SwaggerOperation(OperationId = "GetCategories")]
+        [HttpGet("categories")]
+        [Authorize("ReadTranslations")]
+        public async Task<ActionResult<QueryCategoriesResult>> GetCategories(
+            [FromQuery] string projectName,
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.QueryCategories(
+                projectName);
+            return Unwrap(result);
         }
 
         private ActionResult<T> Unwrap<T, E>(Result<T, E> result) where T : notnull
