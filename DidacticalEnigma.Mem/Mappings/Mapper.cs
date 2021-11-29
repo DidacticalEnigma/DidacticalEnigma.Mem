@@ -2,7 +2,7 @@ using System.Linq;
 using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Translation.IoModels;
 
-namespace DidacticalEnigma.Mem.Translation.Mappings
+namespace DidacticalEnigma.Mem.Mappings
 {
     public static class Mapper
     {

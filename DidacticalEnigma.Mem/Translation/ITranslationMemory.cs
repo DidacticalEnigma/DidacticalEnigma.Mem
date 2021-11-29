@@ -63,5 +63,7 @@ namespace DidacticalEnigma.Mem.Translation
         
         Task<Result<Unit, Unit>> DeleteCategory(
             Guid categoryId);
+
+        Task<Result<QueryProjectsResult, object>> ListProjects();
     }
 }

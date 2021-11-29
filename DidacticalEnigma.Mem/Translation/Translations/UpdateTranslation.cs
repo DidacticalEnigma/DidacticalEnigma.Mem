@@ -3,9 +3,9 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
+using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation.IoModels;
-using DidacticalEnigma.Mem.Translation.Mappings;
 using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Translations

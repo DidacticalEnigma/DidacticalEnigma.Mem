@@ -1,5 +1,3 @@
-using System;
-using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Authentication;
@@ -10,7 +8,6 @@ using DidacticalEnigma.Mem.Translation.Categories;
 using DidacticalEnigma.Mem.Translation.Contexts;
 using DidacticalEnigma.Mem.Translation.Projects;
 using DidacticalEnigma.Mem.Translation.Translations;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -20,7 +17,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using NMeCab;
@@ -104,6 +100,7 @@ namespace DidacticalEnigma.Mem
             services.AddScoped<QueryCategories>();
             services.AddScoped<AddCategories>();
             services.AddScoped<DeleteCategory>();
+            services.AddScoped<ListProjects>();
             
             services.AddAuthorization(options =>
             {

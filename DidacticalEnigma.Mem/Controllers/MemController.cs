@@ -143,6 +143,16 @@ namespace DidacticalEnigma.Mem.Controllers
             return Unwrap(result, new UpdateTranslationResult());
         }
         
+        [SwaggerOperation(OperationId = "ListProjects")]
+        [HttpGet("projects")]
+        [Authorize("EnumerateProjects")]
+        public async Task<ActionResult<QueryProjectsResult>> ListProjects(
+            [FromServices] ITranslationMemory translationMemory)
+        {
+            var result = await translationMemory.ListProjects();
+            return Unwrap(result);
+        }
+        
         [SwaggerOperation(OperationId = "AddCategories")]
         [HttpPost("categories")]
         [Authorize("ModifyCategories")]

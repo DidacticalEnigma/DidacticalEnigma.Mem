@@ -25,6 +25,7 @@ namespace DidacticalEnigma.Mem.Translation
         private readonly QueryCategories queryCategories;
         private readonly AddCategories addCategories;
         private readonly DeleteCategory deleteCategory;
+        private readonly ListProjects listProjects;
 
         public TranslationMemory(
             AddTranslations addTranslations,
@@ -39,7 +40,8 @@ namespace DidacticalEnigma.Mem.Translation
             DeleteProject deleteProject,
             QueryCategories queryCategories,
             AddCategories addCategories,
-            DeleteCategory deleteCategory)
+            DeleteCategory deleteCategory,
+            ListProjects listProjects)
         {
             this.addTranslations = addTranslations;
             this.queryTranslations = queryTranslations;
@@ -54,6 +56,7 @@ namespace DidacticalEnigma.Mem.Translation
             this.queryCategories = queryCategories;
             this.addCategories = addCategories;
             this.deleteCategory = deleteCategory;
+            this.listProjects = listProjects;
         }
 
         public async Task<Result<QueryTranslationsResult, Unit>> Query(
@@ -116,6 +119,11 @@ namespace DidacticalEnigma.Mem.Translation
         public async Task<Result<Unit, Unit>> DeleteCategory(Guid categoryId)
         {
             return await this.deleteCategory.Delete(categoryId);
+        }
+
+        public async Task<Result<QueryProjectsResult, object>> ListProjects()
+        {
+            return await this.listProjects.Query();
         }
 
         public async Task<Result<FileResult, Unit>> GetContextData(Guid id)

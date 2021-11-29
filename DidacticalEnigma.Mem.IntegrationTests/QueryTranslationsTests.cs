@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using System.Web;
 using DidacticalEnigma.Mem.Configurations;
 using DidacticalEnigma.Mem.Translation.IoModels;
-using DidacticalEnigma.Mem.Translation.StoredModels;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +38,8 @@ namespace DidacticalEnigma.Mem.IntegrationTests
             var client = this.webApplicationFactory.CreateClientWithAuth(
                 "read:translations",
                 "modify:projects",
-                "modify:translations");
+                "modify:translations",
+                "modify:categories");
 
             var query = "言う";
 
@@ -58,8 +58,13 @@ namespace DidacticalEnigma.Mem.IntegrationTests
                 });
             
             result = result ?? throw new InvalidOperationException();
-            Assert.Equal("違うなら|言っ|て欲しいんだよ…", result.Translations.Single().Source);
-            Assert.Equal("Please tell me I'm wrong...", result.Translations.Single().Target);
+            var tl = result.Translations.Single();
+            Assert.Equal("違うなら|言っ|て欲しいんだよ…", tl.Source);
+            Assert.Equal("Please tell me I'm wrong...", tl.Target);
+            Assert.Equal(new Guid("7EE2147C-94CD-4CFF-AC14-5D68971A46B6"), tl.CategoryId);
+            Assert.Equal("Broski", tl.Category);
+            Assert.Equal(ProjectName, tl.ProjectName);
+            Assert.Equal("違う", tl.TranslationNotes.Gloss.First().Foreign);
         }
         
         [Fact]
@@ -68,7 +73,8 @@ namespace DidacticalEnigma.Mem.IntegrationTests
             var client = this.webApplicationFactory.CreateClientWithAuth(
                 "read:translations",
                 "modify:projects",
-                "modify:translations");
+                "modify:translations",
+                "modify:categories");
 
             var correlationId = "My Test Manga Volume 1, Chapter 1";
 
@@ -104,7 +110,8 @@ namespace DidacticalEnigma.Mem.IntegrationTests
             var client = this.webApplicationFactory.CreateClientWithAuth(
                 "read:translations",
                 "modify:projects",
-                "modify:translations");
+                "modify:translations",
+                "modify:categories");
 
             await this.webApplicationFactory.CallOnce(setUpPrecondition, client);
 
@@ -153,14 +160,28 @@ namespace DidacticalEnigma.Mem.IntegrationTests
                 actual: allTranslations.Select(tl => tl.CorrelationId).OrderBy(x => x));
         }
 
-        private static readonly Func<HttpClient, Task> setUpPrecondition = SetUpPrecondition;
-
-        private static async Task SetUpPrecondition(HttpClient client)
+        private static readonly Func<HttpClient, Task> setUpPrecondition = async client =>
         {
             var addProjectResponse =
                 await client.PostAsync($"mem/projects?projectName={HttpUtility.UrlEncode(ProjectName)}", null);
 
             addProjectResponse.EnsureSuccessStatusCode();
+
+            var addCategoryResponse =
+                await client.PostAsJsonAsync($"mem/categories?projectName={HttpUtility.UrlEncode(ProjectName)}",
+                    new AddCategoriesParams()
+                    {
+                        Categories = new AddCategoryParams[]
+                        {
+                            new AddCategoryParams()
+                            {
+                                Id = new Guid("7EE2147C-94CD-4CFF-AC14-5D68971A46B6"),
+                                Name = "Broski"
+                            }
+                        }
+                    });
+
+            addCategoryResponse.EnsureSuccessStatusCode();
 
             var addTranslationsResponse = await client.PostAsJsonAsync(
                 $"mem/translations?projectName={HttpUtility.UrlEncode(ProjectName)}", new AddTranslationsParams()
@@ -197,6 +218,7 @@ namespace DidacticalEnigma.Mem.IntegrationTests
                             Source = "違うなら言って\n欲しいんだよ…",
                             Target = "Please tell me I'm wrong...",
                             CorrelationId = "My Test Manga Volume 1, Chapter 1, Caption 42",
+                            CategoryId = new Guid("7EE2147C-94CD-4CFF-AC14-5D68971A46B6"),
                             TranslationNotes = new AddTranslationNotesParams()
                             {
                                 Normal = Array.Empty<IoNormalNote>(),
@@ -252,7 +274,7 @@ namespace DidacticalEnigma.Mem.IntegrationTests
                 });
 
             addTranslationsResponse.EnsureSuccessStatusCode();
-        }
+        };
 
         public static void Initialize(MemContext db)
         {
