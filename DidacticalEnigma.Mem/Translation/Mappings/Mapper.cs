@@ -1,6 +1,6 @@
 using System.Linq;
+using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Translation.IoModels;
-using DidacticalEnigma.Mem.Translation.StoredModels;
 
 namespace DidacticalEnigma.Mem.Translation.Mappings
 {

@@ -1,5 +1,5 @@
 ﻿using System;
-using DidacticalEnigma.Mem.Translation.StoredModels;
+using DidacticalEnigma.Mem.DatabaseModels;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;

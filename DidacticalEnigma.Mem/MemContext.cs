@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using DidacticalEnigma.Mem.Translation.StoredModels;
+using DidacticalEnigma.Mem.DatabaseModels;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
 
@@ -13,7 +13,7 @@ namespace DidacticalEnigma.Mem
         
         public DbSet<Project> Projects { get; set; }
         
-        public DbSet<Translation.StoredModels.Translation> TranslationPairs { get; set; }
+        public DbSet<DatabaseModels.Translation> TranslationPairs { get; set; }
         
         public DbSet<AllowedMediaType> MediaTypes { get; set; }
         
@@ -53,7 +53,7 @@ namespace DidacticalEnigma.Mem
                     .OnDelete(DeleteBehavior.Cascade);
             }
             {
-                var translationPairBuilder = modelBuilder.Entity<Translation.StoredModels.Translation>();
+                var translationPairBuilder = modelBuilder.Entity<DatabaseModels.Translation>();
                 translationPairBuilder.HasKey(translationPair => translationPair.Id);
                 translationPairBuilder.Property(translationPair => translationPair.Source).IsRequired();
                 translationPairBuilder.Property(translationPair => translationPair.SearchVector).IsRequired();
