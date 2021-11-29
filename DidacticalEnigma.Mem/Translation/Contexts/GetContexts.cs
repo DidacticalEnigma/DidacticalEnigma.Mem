@@ -37,7 +37,7 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                     "no parameters are provided");
             }
             
-            if (id != null && (correlationId != null || projectName != null))
+            if ((correlationId != null && projectName == null) || (correlationId == null && projectName != null))
             {
                 return Result<QueryContextsResult, Unit>.Failure(
                     HttpStatusCode.BadRequest,

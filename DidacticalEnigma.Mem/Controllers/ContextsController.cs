@@ -25,7 +25,9 @@ namespace DidacticalEnigma.Mem.Controllers
                 request.CorrelationId,
                 request.ProjectName,
                 request.Content.OpenReadStream(),
-                request.Content.ContentType,
+                string.IsNullOrEmpty(request.ContentTypeOverride)
+                    ? request.Content.ContentType
+                    : request.ContentTypeOverride,
                 request.Text);
             return result.Unwrap(new AddContextResult());
         }

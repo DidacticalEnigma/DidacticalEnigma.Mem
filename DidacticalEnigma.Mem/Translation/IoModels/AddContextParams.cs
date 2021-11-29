@@ -9,6 +9,8 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
         
         public string ProjectName { get; set; }
         
+        public string? ContentTypeOverride { get; set; }
+        
         public string CorrelationId { get; set; }
         
         public IFormFile Content { get; set; }
