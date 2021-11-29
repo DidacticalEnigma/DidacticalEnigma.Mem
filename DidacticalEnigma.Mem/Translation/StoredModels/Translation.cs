@@ -20,6 +20,10 @@ namespace DidacticalEnigma.Mem.Translation.StoredModels
 
         public string? Target { get; set; }
         
+        public Category? Category { get; set; }
+        
+        public Guid? CategoryId { get; set; }
+        
         public Project Parent { get; set; }
 
         public int ParentId { get; set; }

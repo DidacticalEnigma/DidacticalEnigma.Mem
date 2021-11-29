@@ -9,6 +9,8 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
         public string? Source { get; set; }
         
         public string? Target { get; set; }
+        
+        public Guid? CategoryId { get; set; }
 
         public UpdateTranslationNotesParams? TranslationNotes { get; set; }
         

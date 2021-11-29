@@ -36,14 +36,15 @@ namespace DidacticalEnigma.Mem.Translation.Services
             string? projectName,
             string? correlationIdStart,
             string? queryText,
+            string? category,
             string? paginationToken = null,
             int? limit = null)
         {
-            if (projectName == null && correlationIdStart == null && queryText == null)
+            if (projectName == null && correlationIdStart == null && queryText == null && category == null)
             {
                 return Result<QueryTranslationsResult, Unit>.Failure(
                     HttpStatusCode.BadRequest,
-                    "one of: projectName, correlationId, queryText must be provided");
+                    "one of: projectName, correlationId, queryText, category must be provided");
             }
             var resultLimit = Math.Min(limit ?? 50, 250);
             var translations = this.dbContext.TranslationPairs
@@ -62,6 +63,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
                     translationPair.SearchVector.Matches(
                         EF.Functions.PhraseToTsQuery("simple", normalized)));
             }
+            if (category != null)
+                translations = translations.Where(translationPair => translationPair.Category != null && translationPair.Category.Name == category);
 
             if (paginationToken != null)
             {
@@ -78,6 +81,10 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         ParentName = translationPair.Parent.Name,
                         Source = translationPair.Source,
                         Target = translationPair.Target,
+                        CategoryName = translationPair.Category != null
+                            ? translationPair.Category.Name
+                            : null,
+                        CategoryId = translationPair.CategoryId,
                         CorrelationId = translationPair.CorrelationId,
                         Notes = translationPair.Notes,
                         AssociatedData = translationPair.AssociatedData
@@ -93,6 +100,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         source: source,
                         target: selection.Target,
                         highlighterSequence: highlighter,
+                        category: selection.CategoryName,
+                        categoryId: selection.CategoryId,
                         correlationId: selection.CorrelationId,
                         translationNotes: Mapper.Map(selection.Notes),
                         associatedData: selection.AssociatedData != null
@@ -275,6 +284,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             UpdateTranslationParams uploadParams)
         {
             var translation = await this.dbContext.TranslationPairs
+                .Include(t => t.Category)
                 .Include(t => t.Parent)
                 .FirstOrDefaultAsync(t =>
                     t.Parent.Name == projectName &&
@@ -299,6 +309,8 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         source: translation.Source,
                         target: translation.Target,
                         highlighterSequence: null,
+                        category: translation.Category?.Name,
+                        categoryId: translation.CategoryId,
                         correlationId: translation.CorrelationId,
                         translationNotes: Mapper.Map(translation.Notes),
                         associatedData: translation.AssociatedData != null
@@ -319,6 +331,12 @@ namespace DidacticalEnigma.Mem.Translation.Services
                 translation.ModificationTime = currentTime;
             }
             
+            if (uploadParams.CategoryId != null)
+            {
+                translation.CategoryId = uploadParams.CategoryId;
+                translation.ModificationTime = currentTime;
+            }
+            
             if (uploadParams.TranslationNotes != null)
             {
                 translation.Notes = Mapper.Map(uploadParams.TranslationNotes);
@@ -333,6 +351,85 @@ namespace DidacticalEnigma.Mem.Translation.Services
 
             await this.dbContext.SaveChangesAsync();
             return Result<Unit, QueryTranslationResult>.Ok(Unit.Value);
+        }
+
+        public async Task<Result<QueryCategoriesResult, Unit>> QueryCategories(string projectName)
+        {
+            if (!this.dbContext.Projects.Any(project => project.Name == projectName))
+            {
+                return Result<QueryCategoriesResult, Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "project not found");
+            }
+            
+            var categories = (await this.dbContext.Projects
+                .Where(project => project.Name == projectName)
+                .SelectMany(project => project.Categories)
+                .Select(category => new
+                {
+                    Id = category.Id,
+                    Name = category.Name
+                })
+                .ToListAsync())
+                .Select(categoryData => new QueryCategoryResult()
+                {
+                    Id = categoryData.Id,
+                    Name = categoryData.Name
+                })
+                .ToList();
+            
+            return Result<QueryCategoriesResult, Unit>.Ok(new QueryCategoriesResult()
+            {
+                Categories = categories 
+            });
+        }
+
+        public async Task<Result<Unit, Unit>> AddCategories(
+            string projectName,
+            AddCategoriesParams categoriesParams)
+        {
+            var projectId = await this.dbContext.Projects
+                .Where(project => project.Name == projectName)
+                .Select(project => (int?)project.Id)
+                .FirstOrDefaultAsync();
+
+            if (projectId == null)
+            {
+                return Result<Unit, Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "project not found");
+            }
+
+            foreach (var addCategoryParams in categoriesParams.Categories)
+            {
+                this.dbContext.Categories.Add(new Category()
+                {
+                    Id = addCategoryParams.Id,
+                    Name = addCategoryParams.Name,
+                    ParentId = projectId.Value
+                });
+            }
+
+            await this.dbContext.SaveChangesAsync();
+            return Result<Unit, Unit>.Ok(Unit.Value);
+        }
+
+        public async Task<Result<Unit, Unit>> DeleteCategory(Guid categoryId)
+        {
+            var category = await this.dbContext.Categories
+                .FirstOrDefaultAsync(category => category.Id == categoryId);
+            
+            if (category == null)
+            {
+                return Result<Unit, Unit>.Failure(
+                    HttpStatusCode.NotFound,
+                    "category not found");
+            }
+
+            this.dbContext.Categories.Remove(category);
+            await this.dbContext.SaveChangesAsync();
+            
+            return Result<Unit, Unit>.Ok(Unit.Value);
         }
 
         public async Task<Result<FileResult, Unit>> GetContextData(Guid id)
@@ -455,6 +552,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         ""Source"",
                         ""SearchVector"",
                         ""Target"",
+                        ""CategoryId""
                         ""ParentId"",
                         ""CreationTime"",
                         ""ModificationTime"",
@@ -466,6 +564,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
                         {translation.Source},
                         to_tsvector('simple', {analyzer.Normalize(translation.Source)}),
                         {translation.Target},
+                        {translation.CategoryId},
                         {project.Id},
                         {currentTime},
                         {currentTime},

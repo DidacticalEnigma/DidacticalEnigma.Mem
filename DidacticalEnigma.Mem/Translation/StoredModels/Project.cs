@@ -9,5 +9,7 @@ namespace DidacticalEnigma.Mem.Translation.StoredModels
         public string Name { get; set; }
         
         public IReadOnlyCollection<Translation> Translations { get; set; }
+        
+        public IReadOnlyCollection<Category> Categories { get; set; }
     }
 }

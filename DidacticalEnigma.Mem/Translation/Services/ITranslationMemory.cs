@@ -12,6 +12,7 @@ namespace DidacticalEnigma.Mem.Translation.Services
             string? projectName,
             string? correlationIdStart,
             string? queryText,
+            string? category,
             string? paginationToken = null,
             int? limit = null);
 
@@ -52,5 +53,15 @@ namespace DidacticalEnigma.Mem.Translation.Services
             string projectName,
             string correlationId,
             UpdateTranslationParams uploadParams);
+        
+        Task<Result<QueryCategoriesResult, Unit>> QueryCategories(
+            string projectName);
+        
+        Task<Result<Unit, Unit>> AddCategories(
+            string projectName,
+            AddCategoriesParams categoriesParams);
+        
+        Task<Result<Unit, Unit>> DeleteCategory(
+            Guid categoryId);
     }
 }

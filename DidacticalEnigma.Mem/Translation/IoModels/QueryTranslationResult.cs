@@ -10,6 +10,8 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
             string source,
             string? target,
             string? highlighterSequence,
+            string? category,
+            Guid? categoryId,
             string correlationId,
             QueryTranslationNotesResult? translationNotes,
             IDictionary<string, object>? associatedData)
@@ -18,6 +20,8 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
             Source = source ?? throw new ArgumentNullException(nameof(source));
             Target = target;
             HighlighterSequence = highlighterSequence;
+            Category = category;
+            CategoryId = categoryId;
             CorrelationId = correlationId;
             TranslationNotes = translationNotes;
             AssociatedData = associatedData;
@@ -31,6 +35,10 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
         
         public string? HighlighterSequence { get; }
         
+        public string? Category { get; }
+        
+        public Guid? CategoryId { get; }
+
         public string CorrelationId { get; }
         
         public QueryTranslationNotesResult? TranslationNotes { get; }

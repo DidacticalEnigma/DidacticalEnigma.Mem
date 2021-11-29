@@ -66,11 +66,12 @@ namespace DidacticalEnigma.Mem.Translation.Controllers
             [FromQuery] string? projectName,
             [FromQuery] string? correlationId,
             [FromQuery] string? query,
+            [FromQuery] string? category,
             [FromQuery] string? paginationToken,
             [FromQuery] int? limit,
             [FromServices] ITranslationMemory translationMemory)
         {
-            var result = await translationMemory.Query(projectName, correlationId, query, paginationToken, limit ?? 50);
+            var result = await translationMemory.Query(projectName, correlationId, query, category, paginationToken, limit ?? 50);
             return Unwrap(result);
         }
         

@@ -16,6 +16,8 @@ namespace DidacticalEnigma.Mem
         public DbSet<Translation.StoredModels.Translation> TranslationPairs { get; set; }
         
         public DbSet<AllowedMediaType> MediaTypes { get; set; }
+        
+        public DbSet<Category> Categories { get; set; }
 
         public MemContext(DbContextOptions<MemContext> dbOptions) :
             base(dbOptions)
@@ -42,6 +44,12 @@ namespace DidacticalEnigma.Mem
                     .HasMany(project => project.Translations)
                     .WithOne(translationPair => translationPair.Parent)
                     .HasForeignKey(translationPair => translationPair.ParentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                projectBuilder
+                    .HasMany(project => project.Categories)
+                    .WithOne(category => category.Parent)
+                    .HasForeignKey(category => category.ParentId)
                     .OnDelete(DeleteBehavior.Cascade);
             }
             {
@@ -79,6 +87,19 @@ namespace DidacticalEnigma.Mem
                 var npgsqlQueryBuilder = modelBuilder.Entity<NpgsqlQuery>();
                 npgsqlQueryBuilder.HasNoKey();
                 npgsqlQueryBuilder.Property(context => context.Vec);
+            }
+            {
+                var categoryBuilder = modelBuilder.Entity<Category>();
+                categoryBuilder.HasKey(category => category.Id);
+                categoryBuilder.Property(category => category.Name);
+
+                categoryBuilder
+                    .HasMany(category => category.Translations)
+                    .WithOne(translationPair => translationPair.Category)
+                    .HasForeignKey(translationPair => translationPair.CategoryId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                categoryBuilder.HasIndex(category => new { category.Name, category.ParentId }).IsUnique();
             }
         }
 
