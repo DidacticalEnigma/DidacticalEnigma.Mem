@@ -24,6 +24,15 @@ namespace DidacticalEnigma.Mem.Controllers
             return result.Unwrap();
         }
         
+        /// <summary>
+        /// Query for translations
+        /// </summary>
+        /// <param name="projectName">The name of the project</param>
+        /// <param name="correlationId">The prefix of the correlation id</param>
+        /// <param name="query">Search query</param>
+        /// <param name="category">Translation category</param>
+        /// <param name="paginationToken">A pagination token that was returned from the previous query with the same set of parameters</param>
+        /// <param name="limit">How many translations should be returned? Values above 250 are treated as if 250 was passed.</param>
         [SwaggerOperation(OperationId = "Query")]
         [HttpGet("translations")]
         [Authorize("ReadTranslations")]

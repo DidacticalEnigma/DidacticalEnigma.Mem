@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json.Serialization;
 using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Authentication;
@@ -41,7 +42,17 @@ namespace DidacticalEnigma.Mem
             
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo {Title = "DidacticalEnigma.Mem", Version = "v1"});
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "DidacticalEnigma.Mem",
+                    Version = "v1",
+                    Description = 
+@"Simple translation memory server
+
+A single project contains many translation units, each one has source text and target text, and may have an associated context with it. Context stores a piece of textual or binary data, or both.
+
+Each translation unit has a correlation id, which can store an identifier, unique to the project, which can be used to correlate a specific translation unit with an external resource or database."
+                });
                 c.EnableAnnotations();
                 
                 c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
@@ -53,6 +64,9 @@ namespace DidacticalEnigma.Mem
                 });
                 
                 c.OperationFilter<SecurityRequirementsOperationFilter>();
+                
+                var filePath = Path.Combine(System.AppContext.BaseDirectory, "DidacticalEnigma.Mem.xml");
+                c.IncludeXmlComments(filePath);
             });
             
             var databaseConfigurationSection = Configuration.GetSection("DatabaseConfiguration");

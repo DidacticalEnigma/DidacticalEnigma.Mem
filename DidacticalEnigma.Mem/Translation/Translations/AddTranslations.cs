@@ -68,14 +68,13 @@ namespace DidacticalEnigma.Mem.Translation.Translations
             }
             
             var currentTime = this.currentTimeProvider.GetCurrentTime();
-            
-            foreach (var translation in translations)
-            {
-                if (alreadyExistingTranslationIds.Contains(translation.CorrelationId))
-                {
-                    continue;
-                }
 
+            var translationsToAdd = translations
+                .Where(translation =>
+                    alreadyExistingTranslationIds.Contains(translation.CorrelationId));
+            
+            foreach (var translation in translationsToAdd)
+            {
                 await this.dbContext.Database.ExecuteSqlInterpolatedAsync(
                     $@"INSERT INTO ""TranslationPairs"" (
                         ""Id"",
