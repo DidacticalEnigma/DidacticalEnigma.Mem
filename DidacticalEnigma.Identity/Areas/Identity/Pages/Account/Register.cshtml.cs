@@ -71,10 +71,13 @@ namespace DidacticalEnigma.Identity.Areas.Identity.Pages.Account
         /// </summary>
         public class InputModel
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
+            [Required]
+            [RegularExpression(@"[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9]",
+                ErrorMessage = "Username may only contain alphanumeric characters or single hyphens, and cannot begin or end with a hyphen. ")]
+            [StringLength(64, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 3)]
+            [Display(Name = "User name")]
+            public string UserName { get; set; }
+            
             [Required]
             [EmailAddress]
             [Display(Name = "Email")]
@@ -115,7 +118,7 @@ namespace DidacticalEnigma.Identity.Areas.Identity.Pages.Account
             {
                 var user = CreateUser();
 
-                await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+                await _userStore.SetUserNameAsync(user, Input.UserName, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
@@ -157,16 +160,7 @@ namespace DidacticalEnigma.Identity.Areas.Identity.Pages.Account
 
         private User CreateUser()
         {
-            try
-            {
-                return Activator.CreateInstance<User>();
-            }
-            catch
-            {
-                throw new InvalidOperationException($"Can't create an instance of '{nameof(User)}'. " +
-                    $"Ensure that '{nameof(User)}' is not an abstract class and has a parameterless constructor, or alternatively " +
-                    $"override the register page in /Areas/Identity/Pages/Account/Register.cshtml");
-            }
+            return new User();
         }
 
         private IUserEmailStore<User> GetEmailStore()
