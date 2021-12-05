@@ -1,11 +1,12 @@
 using System.Threading.Tasks;
 using DidacticalEnigma.Mem.DatabaseModels;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
 
 namespace DidacticalEnigma.Mem
 {
-    public class MemContext : DbContext
+    public class MemContext : IdentityDbContext<User>
     {
         public DbSet<NpgsqlQuery> NpgsqlQueries { get; set; }
         
@@ -27,6 +28,8 @@ namespace DidacticalEnigma.Mem
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+            
             {
                 var mediaTypeBuilder = modelBuilder.Entity<AllowedMediaType>();
                 mediaTypeBuilder.HasKey(mediaType => mediaType.Id);

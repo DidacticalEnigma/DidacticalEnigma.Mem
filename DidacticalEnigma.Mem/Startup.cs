@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Authentication;
 using DidacticalEnigma.Mem.Configurations;
+using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.Categories;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +41,7 @@ namespace DidacticalEnigma.Mem
         {
             services.AddMvcCore()
                 .AddApiExplorer();
-            
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo
@@ -92,15 +94,20 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<ITranslationMemory, TranslationMemory>();
             
             services.AddDbContext<MemContext>(options =>
-                options.UseNpgsql(databaseConfiguration.ConnectionString));
+            {
+                options.UseNpgsql(databaseConfiguration.ConnectionString);
+                options.UseOpenIddict();
+            });
             
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
+            services
+                .AddDefaultIdentity<User>(options =>
                 {
-                    options.Authority = authConfiguration.Authority;
-                    options.Audience = authConfiguration.Audience;
-                });
-            
+                    options.SignIn.RequireConfirmedAccount = true;
+                })
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<MemContext>()
+                .AddTokenProvider<DataProtectorTokenProvider<User>>("DidacticalEnigma");
+
             services.AddScoped<AddTranslations>();
             services.AddScoped<QueryTranslations>();
             services.AddScoped<GetContexts>();
@@ -115,6 +122,33 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<AddCategories>();
             services.AddScoped<DeleteCategory>();
             services.AddScoped<ListProjects>();
+
+            services.AddOpenIddict()
+                .AddCore(options =>
+                {
+                    options.UseEntityFrameworkCore()
+                        .UseDbContext<MemContext>();
+                })
+                .AddServer(options =>
+                {
+                    options.SetAuthorizationEndpointUris("/connect/authorize")
+                        .SetLogoutEndpointUris("/connect/logout")
+                        .SetTokenEndpointUris("/connect/token")
+                        .SetUserinfoEndpointUris("/connect/userinfo");
+                    options.AllowAuthorizationCodeFlow();
+
+                    options.AddDevelopmentEncryptionCertificate()
+                        .AddDevelopmentSigningCertificate();
+                    
+                    options.UseAspNetCore()
+                        .EnableTokenEndpointPassthrough();
+                })
+                .AddValidation(options =>
+                {
+                    options.UseLocalServer();
+                    
+                    options.UseAspNetCore();
+                });;
             
             services.AddAuthorization(options =>
             {
@@ -175,6 +209,8 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 {
                     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
+
+            services.AddRazorPages();
             
             services.AddSingleton<IAuthorizationHandler, MemAuthorizationHandler>();
         }
@@ -202,15 +238,23 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "DidacticalEnigma.Mem V1");
-                c.RoutePrefix = "";
+                c.RoutePrefix = "Api";
             });
 
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            
             app.UseRouting();
 
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+                endpoints.MapRazorPages();
+                endpoints.MapDefaultControllerRoute();
+            });
         }
     }
 }
