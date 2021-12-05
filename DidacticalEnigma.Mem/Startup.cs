@@ -70,7 +70,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 var filePath = Path.Combine(System.AppContext.BaseDirectory, "DidacticalEnigma.Mem.xml");
                 c.IncludeXmlComments(filePath);
             });
-            
+
             var databaseConfigurationSection = Configuration.GetSection("DatabaseConfiguration");
             services.Configure<DatabaseConfiguration>(databaseConfigurationSection);
             var databaseConfiguration = databaseConfigurationSection.Get<DatabaseConfiguration>();
@@ -96,7 +96,6 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddDbContext<MemContext>(options =>
             {
                 options.UseNpgsql(databaseConfiguration.ConnectionString);
-                options.UseOpenIddict();
             });
             
             services
@@ -123,33 +122,6 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<DeleteCategory>();
             services.AddScoped<ListProjects>();
 
-            services.AddOpenIddict()
-                .AddCore(options =>
-                {
-                    options.UseEntityFrameworkCore()
-                        .UseDbContext<MemContext>();
-                })
-                .AddServer(options =>
-                {
-                    options.SetAuthorizationEndpointUris("/connect/authorize")
-                        .SetLogoutEndpointUris("/connect/logout")
-                        .SetTokenEndpointUris("/connect/token")
-                        .SetUserinfoEndpointUris("/connect/userinfo");
-                    options.AllowAuthorizationCodeFlow();
-
-                    options.AddDevelopmentEncryptionCertificate()
-                        .AddDevelopmentSigningCertificate();
-                    
-                    options.UseAspNetCore()
-                        .EnableTokenEndpointPassthrough();
-                })
-                .AddValidation(options =>
-                {
-                    options.UseLocalServer();
-                    
-                    options.UseAspNetCore();
-                });;
-            
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(

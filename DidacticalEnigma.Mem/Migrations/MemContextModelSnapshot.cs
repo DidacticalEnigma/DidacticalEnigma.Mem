@@ -45,7 +45,7 @@ namespace DidacticalEnigma.Mem.Migrations
                     b.HasIndex("MediaType")
                         .IsUnique();
 
-                    b.ToTable("MediaTypes");
+                    b.ToTable("MediaTypes", (string)null);
 
                     b.HasData(
                         new
@@ -82,7 +82,7 @@ namespace DidacticalEnigma.Mem.Migrations
                     b.HasIndex("Name", "ParentId")
                         .IsUnique();
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("DidacticalEnigma.Mem.DatabaseModels.Context", b =>
@@ -114,7 +114,7 @@ namespace DidacticalEnigma.Mem.Migrations
                     b.HasIndex("ProjectId", "CorrelationId")
                         .IsUnique();
 
-                    b.ToTable("Contexts");
+                    b.ToTable("Contexts", (string)null);
                 });
 
             modelBuilder.Entity("DidacticalEnigma.Mem.DatabaseModels.NpgsqlQuery", b =>
@@ -123,7 +123,7 @@ namespace DidacticalEnigma.Mem.Migrations
                         .IsRequired()
                         .HasColumnType("tsvector");
 
-                    b.ToTable("NpgsqlQueries");
+                    b.ToTable("NpgsqlQueries", (string)null);
                 });
 
             modelBuilder.Entity("DidacticalEnigma.Mem.DatabaseModels.Project", b =>
@@ -143,7 +143,7 @@ namespace DidacticalEnigma.Mem.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Projects");
+                    b.ToTable("Projects", (string)null);
                 });
 
             modelBuilder.Entity("DidacticalEnigma.Mem.DatabaseModels.Translation", b =>
@@ -198,7 +198,7 @@ namespace DidacticalEnigma.Mem.Migrations
                     b.HasIndex("ParentId", "CorrelationId")
                         .IsUnique();
 
-                    b.ToTable("TranslationPairs");
+                    b.ToTable("TranslationPairs", (string)null);
                 });
 
             modelBuilder.Entity("DidacticalEnigma.Mem.DatabaseModels.User", b =>
