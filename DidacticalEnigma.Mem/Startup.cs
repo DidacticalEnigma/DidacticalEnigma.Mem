@@ -23,6 +23,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using NMeCab;
+using OpenIddict.Abstractions;
+using Quartz;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace DidacticalEnigma.Mem
@@ -96,16 +98,25 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddDbContext<MemContext>(options =>
             {
                 options.UseNpgsql(databaseConfiguration.ConnectionString);
+                
+                options.UseOpenIddict();
             });
             
             services
                 .AddDefaultIdentity<User>(options =>
                 {
-                    options.SignIn.RequireConfirmedAccount = true;
+                    options.SignIn.RequireConfirmedAccount = false;
                 })
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<MemContext>()
-                .AddTokenProvider<DataProtectorTokenProvider<User>>("DidacticalEnigma");
+                .AddDefaultTokenProviders();
+            
+            services.Configure<IdentityOptions>(options =>
+            {
+                options.ClaimsIdentity.UserNameClaimType = OpenIddictConstants.Claims.Name;
+                options.ClaimsIdentity.UserIdClaimType = OpenIddictConstants.Claims.Subject;
+                options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
+            });
 
             services.AddScoped<AddTranslations>();
             services.AddScoped<QueryTranslations>();
@@ -121,6 +132,15 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<AddCategories>();
             services.AddScoped<DeleteCategory>();
             services.AddScoped<ListProjects>();
+            
+            services.AddQuartz(options =>
+            {
+                options.UseMicrosoftDependencyInjectionJobFactory();
+                options.UseSimpleTypeLoader();
+                options.UseInMemoryStore();
+            });
+            
+            services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
             services.AddAuthorization(options =>
             {
@@ -175,8 +195,53 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                             new AuthConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadContexts))));
             });
             
+            services.AddOpenIddict()
+                .AddCore(options =>
+                {
+                    // Configure OpenIddict to use the Entity Framework Core stores and models.
+                    // Note: call ReplaceDefaultEntities() to replace the default OpenIddict entities.
+                    options.UseEntityFrameworkCore()
+                        .UseDbContext<MemContext>();
+
+                    // Enable Quartz.NET integration.
+                    options.UseQuartz();
+                })
+                .AddServer(options =>
+                {
+                    options
+                        .SetAuthorizationEndpointUris("/connect/authorize")
+                        .SetLogoutEndpointUris("/connect/logout")
+                        .SetTokenEndpointUris("/connect/token")
+                        .SetUserinfoEndpointUris("/connect/userinfo");
+                    
+                    options.RegisterScopes(
+                        OpenIddictConstants.Scopes.Email,
+                        OpenIddictConstants.Scopes.Profile,
+                        OpenIddictConstants.Scopes.Roles);
+                    
+                    options
+                        .AllowAuthorizationCodeFlow()
+                        .AllowRefreshTokenFlow();
+                    
+                    options
+                        .AddDevelopmentEncryptionCertificate()
+                        .AddDevelopmentSigningCertificate();
+                    
+                    options
+                        .UseAspNetCore()
+                        .EnableAuthorizationEndpointPassthrough()
+                        .EnableLogoutEndpointPassthrough()
+                        .EnableStatusCodePagesIntegration()
+                        .EnableTokenEndpointPassthrough();
+                })
+                .AddValidation(options =>
+                {
+                    options.UseLocalServer();
+                    options.UseAspNetCore();
+                });
+            
             services
-                .AddControllers()
+                .AddControllersWithViews()
                 .AddJsonOptions(opts =>
                 {
                     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -185,6 +250,8 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddRazorPages();
             
             services.AddSingleton<IAuthorizationHandler, MemAuthorizationHandler>();
+            
+            services.AddHostedService<Worker>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -223,9 +290,9 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllers();
                 endpoints.MapRazorPages();
-                endpoints.MapDefaultControllerRoute();
+                endpoints.MapControllers();
+                endpoints.MapFallbackToFile("index.html");
             });
         }
     }
