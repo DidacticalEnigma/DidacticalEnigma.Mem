@@ -2,8 +2,10 @@ using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DidacticalEnigma.Mem.Controllers
@@ -14,7 +16,7 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddTranslations")]
         [HttpPost("translations")]
-        [Authorize("ModifyTranslations")]
+        [Authorize("ModifyTranslations", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<AddTranslationsResult>> AddTranslations(
             [FromQuery] string projectName,
             [FromBody] AddTranslationsParams request,
@@ -35,7 +37,7 @@ namespace DidacticalEnigma.Mem.Controllers
         /// <param name="limit">How many translations should be returned? Values above 250 are treated as if 250 was passed.</param>
         [SwaggerOperation(OperationId = "Query")]
         [HttpGet("translations")]
-        [Authorize("ReadTranslations")]
+        [Authorize("ReadTranslations", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<QueryTranslationsResult>> Query(
             [FromQuery] string? projectName,
             [FromQuery] string? correlationId,
@@ -51,7 +53,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "DeleteTranslation")]
         [HttpDelete("translations")]
-        [Authorize("ModifyTranslations")]
+        [Authorize("ModifyTranslations", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<DeleteTranslationResult>> DeleteTranslation(
             [FromQuery] string projectName,
             [FromQuery] string correlationId,
@@ -63,7 +65,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "UpdateTranslation")]
         [HttpPatch("translations")]
-        [Authorize("ModifyTranslations")]
+        [Authorize("ModifyTranslations", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<UpdateTranslationResult>> UpdateTranslation(
             [FromQuery] string projectName,
             [FromQuery] string correlationId,

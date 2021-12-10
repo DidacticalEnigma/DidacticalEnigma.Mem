@@ -101,7 +101,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 
                 options.UseOpenIddict();
             });
-            
+
             services
                 .AddDefaultIdentity<User>(options =>
                 {
@@ -110,7 +110,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<MemContext>()
                 .AddDefaultTokenProviders();
-            
+
             services.Configure<IdentityOptions>(options =>
             {
                 options.ClaimsIdentity.UserNameClaimType = OpenIddictConstants.Claims.Name;
@@ -208,6 +208,8 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 })
                 .AddServer(options =>
                 {
+                    options.DisableAccessTokenEncryption();
+
                     options
                         .SetAuthorizationEndpointUris("/connect/authorize")
                         .SetLogoutEndpointUris("/connect/logout")
@@ -232,23 +234,22 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                         .EnableAuthorizationEndpointPassthrough()
                         .EnableLogoutEndpointPassthrough()
                         .EnableStatusCodePagesIntegration()
-                        .EnableTokenEndpointPassthrough();
+                        .EnableTokenEndpointPassthrough()
+                        .DisableTransportSecurityRequirement();
                 })
                 .AddValidation(options =>
                 {
                     options.UseLocalServer();
                     options.UseAspNetCore();
                 });
-            
+
             services
-                .AddControllersWithViews()
+                .AddRazorPages()
                 .AddJsonOptions(opts =>
                 {
                     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
 
-            services.AddRazorPages();
-            
             services.AddSingleton<IAuthorizationHandler, MemAuthorizationHandler>();
             
             services.AddHostedService<Worker>();
@@ -279,8 +280,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "DidacticalEnigma.Mem V1");
                 c.RoutePrefix = "Api";
             });
-
-            app.UseHttpsRedirection();
+            
             app.UseStaticFiles();
             
             app.UseRouting();
@@ -292,7 +292,6 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             {
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
-                endpoints.MapFallbackToFile("index.html");
             });
         }
     }

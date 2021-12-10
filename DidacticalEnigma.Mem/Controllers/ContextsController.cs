@@ -3,8 +3,10 @@ using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DidacticalEnigma.Mem.Controllers
@@ -15,7 +17,7 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddContext")]
         [HttpPost("contexts")]
-        [Authorize("ModifyContexts")]
+        [Authorize("ModifyContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<AddContextResult>> AddContext(
             [FromForm] AddContextParams request,
             [FromServices] ITranslationMemory translationMemory)
@@ -34,7 +36,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "GetContexts")]
         [HttpGet("contexts")]
-        [Authorize("ReadContexts")]
+        [Authorize("ReadContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<QueryContextsResult>> GetContext(
             [FromQuery] Guid? id,
             [FromQuery] string? projectId,
@@ -47,7 +49,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "GetContextData")]
         [HttpGet("contexts/data")]
-        [Authorize("ReadContexts")]
+        [Authorize("ReadContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult> GetContextData(
             [FromQuery] Guid id,
             [FromServices] ITranslationMemory translationMemory)
@@ -58,7 +60,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "DeleteContext")]
         [HttpDelete("contexts")]
-        [Authorize("ModifyContexts")]
+        [Authorize("ModifyContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<DeleteContextResult>> DeleteContext(
             [FromQuery] Guid id,
             [FromServices] ITranslationMemory translationMemory)

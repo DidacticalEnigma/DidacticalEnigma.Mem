@@ -2,8 +2,10 @@ using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DidacticalEnigma.Mem.Controllers
@@ -14,7 +16,7 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddProject")]
         [HttpPost("projects")]
-        [Authorize("ModifyProjects")]
+        [Authorize("ModifyProjects", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<AddProjectResult>> AddProject(
             [FromQuery] string projectName,
             [FromServices] ITranslationMemory translationMemory)
@@ -25,7 +27,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "DeleteProject")]
         [HttpDelete("projects")]
-        [Authorize("ModifyProjects")]
+        [Authorize("ModifyProjects", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<DeleteProjectResult>> DeleteProject(
             [FromQuery] string projectName,
             [FromServices] ITranslationMemory translationMemory)
@@ -36,7 +38,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "ListProjects")]
         [HttpGet("projects")]
-        [Authorize("EnumerateProjects")]
+        [Authorize("EnumerateProjects", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<QueryProjectsResult>> ListProjects(
             [FromServices] ITranslationMemory translationMemory)
         {

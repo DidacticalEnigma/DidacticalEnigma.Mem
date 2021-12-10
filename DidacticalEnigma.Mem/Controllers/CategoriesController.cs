@@ -3,8 +3,10 @@ using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DidacticalEnigma.Mem.Controllers
@@ -15,7 +17,7 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddCategories")]
         [HttpPost("categories")]
-        [Authorize("ModifyCategories")]
+        [Authorize("ModifyCategories", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<AddCategoriesResult>> AddCategories(
             [FromQuery] string projectName,
             [FromBody] AddCategoriesParams request,
@@ -29,8 +31,8 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "DeleteCategory")]
         [HttpDelete("categories")]
-        [Authorize("ModifyCategories")]
-        public async Task<ActionResult<DeleteCategoryResult>> AddCategories(
+        [Authorize("ModifyCategories", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<DeleteCategoryResult>> DeleteCategory(
             [FromQuery] string projectName,
             [FromQuery] Guid categoryId,
             [FromServices] ITranslationMemory translationMemory)
@@ -42,7 +44,7 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "GetCategories")]
         [HttpGet("categories")]
-        [Authorize("ReadTranslations")]
+        [Authorize("ReadTranslations", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
         public async Task<ActionResult<QueryCategoriesResult>> GetCategories(
             [FromQuery] string projectName,
             [FromServices] ITranslationMemory translationMemory)
