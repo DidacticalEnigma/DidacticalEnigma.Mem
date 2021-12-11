@@ -21,7 +21,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
             this.userManager = userManager;
         }
 
-        public async Task<Result<Unit, Unit>> Accept(
+        public async Task<Result<Unit, Unit>> Reject(
             string? userId,
             string projectName,
             string invitingUserName)

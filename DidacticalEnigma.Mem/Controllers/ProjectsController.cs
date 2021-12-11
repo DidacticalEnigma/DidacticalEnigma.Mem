@@ -16,6 +16,60 @@ namespace DidacticalEnigma.Mem.Controllers
     [Route("mem")]
     public class ProjectsController : ControllerBase
     {
+        [SwaggerOperation(OperationId = "AcceptInvitation")]
+        [HttpPost("projects/invitations/accept")]
+        [Authorize("ApiRejectAnonymous")]
+        public async Task<ActionResult<AcceptInvitationResult>> AcceptInvitation(
+            [FromBody] AcceptInvitationParams acceptInvitationParams,
+            [FromServices] AcceptInvitationHandler acceptInvitationHandler)
+        {
+            var result = await acceptInvitationHandler.Accept(
+                Request.GetUserId(),
+                acceptInvitationParams.ProjectName,
+                acceptInvitationParams.InvitingUserName);
+            return result.Unwrap(new AcceptInvitationResult());
+        }
+        
+        [SwaggerOperation(OperationId = "RejectInvitation")]
+        [HttpPost("projects/invitations/reject")]
+        [Authorize("ApiRejectAnonymous")]
+        public async Task<ActionResult<RejectInvitationResult>> RejectInvitation(
+            [FromBody] RejectInvitationParams rejectInvitationParams,
+            [FromServices] RejectInvitationHandler rejectInvitationHandler)
+        {
+            var result = await rejectInvitationHandler.Reject(
+                Request.GetUserId(),
+                rejectInvitationParams.ProjectName,
+                rejectInvitationParams.InvitingUserName);
+            return result.Unwrap(new RejectInvitationResult());
+        }
+        
+        [SwaggerOperation(OperationId = "SendInvitation")]
+        [HttpPost("projects/invitations")]
+        [Authorize("ApiRejectAnonymous")]
+        public async Task<ActionResult<SendInvitationResult>> SendInvitation(
+            [FromQuery] string projectName,
+            [FromBody] SendInvitationParams sendInvitationParams,
+            [FromServices] SendInvitationHandler sendInvitationHandler)
+        {
+            var result = await sendInvitationHandler.Send(
+                Request.GetUserId(),
+                projectName,
+                sendInvitationParams.InvitedUserName);
+            return result.Unwrap(new SendInvitationResult());
+        }
+        
+        [SwaggerOperation(OperationId = "QueryInvitations")]
+        [HttpGet("projects/invitations")]
+        [Authorize("ApiRejectAnonymous")]
+        public async Task<ActionResult<QueryInvitationsResult>> QueryInvitations(
+            [FromServices] ListInvitationsHandler listInvitationsHandler)
+        {
+            var result = await listInvitationsHandler.Query(
+                Request.GetUserId());
+            return result.Unwrap();
+        }
+        
         [SwaggerOperation(OperationId = "AddProject")]
         [HttpPost("projects")]
         [Authorize("ApiRejectAnonymous")]

@@ -1,9 +1,9 @@
 namespace DidacticalEnigma.Mem.Translation.IoModels
 {
-    public class QueryInvitationResult
+    public class QueryInvitationSentResult
     {
         public string ProjectName { get; set; }
         
-        public string InvitingUser { get; set; }
+        public string InvitedUser { get; set; }
     }
 }
