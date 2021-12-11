@@ -72,10 +72,12 @@ namespace DidacticalEnigma.Mem.Controllers
         [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<DeleteContextResult>> DeleteContext(
             [FromQuery] Guid id,
+            [FromQuery] string projectName,
             [FromServices] DeleteContextHandler deleteContextHandler)
         {
             var result = await deleteContextHandler.Delete(
                 Request.GetUserName(),
+                projectName,
                 id);
             return result.Unwrap(new DeleteContextResult());
         }

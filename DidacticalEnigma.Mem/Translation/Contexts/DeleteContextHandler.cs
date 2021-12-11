@@ -27,12 +27,14 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
         
         public async Task<Result<Unit, Unit>> Delete(
             string? userName,
+            string projectName,
             Guid id)
         {
             var context = await this.dbContext.Contexts
                 .FirstOrDefaultAsync(context =>
                     (context.Project.Owner.UserName == userName
                      || context.Project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
+                    context.Project.Name == projectName &&
                     context.Id == id);
 
             if (context == null)
