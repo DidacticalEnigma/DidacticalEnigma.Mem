@@ -1,9 +1,14 @@
 using System.Threading.Tasks;
+using DidacticalEnigma.Mem.Extensions;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using DidacticalEnigma.Mem.Translation.Translations;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DidacticalEnigma.Mem.Controllers
@@ -14,13 +19,17 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddTranslations")]
         [HttpPost("translations")]
-        [Authorize("ModifyTranslations")]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<AddTranslationsResult>> AddTranslations(
             [FromQuery] string projectName,
             [FromBody] AddTranslationsParams request,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] AddTranslations addTranslations)
         {
-            var result = await translationMemory.AddTranslations(projectName, request.Translations, request.AllowPartialAdd);
+            var result = await addTranslations.Add(
+                Request.GetUserName(),
+                projectName,
+                request.Translations,
+                request.AllowPartialAdd);
             return result.Unwrap();
         }
         
@@ -35,7 +44,7 @@ namespace DidacticalEnigma.Mem.Controllers
         /// <param name="limit">How many translations should be returned? Values above 250 are treated as if 250 was passed.</param>
         [SwaggerOperation(OperationId = "Query")]
         [HttpGet("translations")]
-        [Authorize("ReadTranslations")]
+        [Authorize("ApiAllowAnonymous")]
         public async Task<ActionResult<QueryTranslationsResult>> Query(
             [FromQuery] string? projectName,
             [FromQuery] string? correlationId,
@@ -43,34 +52,45 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromQuery] string? category,
             [FromQuery] string? paginationToken,
             [FromQuery] int? limit,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] QueryTranslationsHandler queryTranslationsHandler)
         {
-            var result = await translationMemory.Query(projectName, correlationId, query, category, paginationToken, limit ?? 50);
+            var result = await queryTranslationsHandler.Query(
+                Request.GetUserName(),
+                projectName,
+                correlationId,
+                query,
+                category,
+                paginationToken,
+                limit ?? 50);
             return result.Unwrap();
         }
-        
+
         [SwaggerOperation(OperationId = "DeleteTranslation")]
         [HttpDelete("translations")]
-        [Authorize("ModifyTranslations")]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<DeleteTranslationResult>> DeleteTranslation(
             [FromQuery] string projectName,
             [FromQuery] string correlationId,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] DeleteTranslationHandler deleteTranslationHandler)
         {
-            var result = await translationMemory.DeleteTranslation(projectName, correlationId);
+            var result = await deleteTranslationHandler.Delete(
+                Request.GetUserName(),
+                projectName,
+                correlationId);
             return result.Unwrap(new DeleteTranslationResult());
         }
         
         [SwaggerOperation(OperationId = "UpdateTranslation")]
         [HttpPatch("translations")]
-        [Authorize("ModifyTranslations")]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<UpdateTranslationResult>> UpdateTranslation(
             [FromQuery] string projectName,
             [FromQuery] string correlationId,
             [FromBody] UpdateTranslationParams request,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] UpdateTranslationHandler updateTranslationHandler)
         {
-            var result = await translationMemory.UpdateTranslation(
+            var result = await updateTranslationHandler.Update(
+                Request.GetUserName(),
                 projectName,
                 correlationId,
                 request);

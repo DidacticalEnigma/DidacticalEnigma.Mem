@@ -3,17 +3,21 @@ using System.Text.Json.Serialization;
 using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.Authentication;
 using DidacticalEnigma.Mem.Configurations;
+using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.Categories;
 using DidacticalEnigma.Mem.Translation.Contexts;
+using DidacticalEnigma.Mem.Translation.IoModels;
 using DidacticalEnigma.Mem.Translation.Projects;
 using DidacticalEnigma.Mem.Translation.Translations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +25,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using NMeCab;
+using OpenIddict.Abstractions;
+using OpenIddict.Validation.AspNetCore;
+using Quartz;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace DidacticalEnigma.Mem
@@ -39,7 +46,7 @@ namespace DidacticalEnigma.Mem
         {
             services.AddMvcCore()
                 .AddApiExplorer();
-            
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo
@@ -68,7 +75,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 var filePath = Path.Combine(System.AppContext.BaseDirectory, "DidacticalEnigma.Mem.xml");
                 c.IncludeXmlComments(filePath);
             });
-            
+
             var databaseConfigurationSection = Configuration.GetSection("DatabaseConfiguration");
             services.Configure<DatabaseConfiguration>(databaseConfigurationSection);
             var databaseConfiguration = databaseConfigurationSection.Get<DatabaseConfiguration>();
@@ -89,94 +96,139 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
 
             services.AddSingleton<ICurrentTimeProvider, CurrentTimeProvider>();
 
-            services.AddScoped<ITranslationMemory, TranslationMemory>();
-            
             services.AddDbContext<MemContext>(options =>
-                options.UseNpgsql(databaseConfiguration.ConnectionString));
-            
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.Authority = authConfiguration.Authority;
-                    options.Audience = authConfiguration.Audience;
-                });
-            
-            services.AddScoped<AddTranslations>();
-            services.AddScoped<QueryTranslations>();
-            services.AddScoped<GetContexts>();
-            services.AddScoped<DeleteContext>();
-            services.AddScoped<UpdateTranslation>();
-            services.AddScoped<AddProject>();
-            services.AddScoped<AddContext>();
-            services.AddScoped<GetContextData>();
-            services.AddScoped<DeleteTranslation>();
-            services.AddScoped<DeleteProject>();
-            services.AddScoped<QueryCategories>();
-            services.AddScoped<AddCategories>();
-            services.AddScoped<DeleteCategory>();
-            services.AddScoped<ListProjects>();
-            
-            services.AddAuthorization(options =>
             {
-                options.AddPolicy(
-                    "ReadTranslations",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("read:translations"),
-                                new AuthConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadTranslations))));
+                options.UseNpgsql(databaseConfiguration.ConnectionString);
                 
-                options.AddPolicy(
-                    "EnumerateProjects",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("read:listOfProjects"))));
-                
-                options.AddPolicy(
-                    "ModifyTranslations",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:translations"))));
-                
-                options.AddPolicy(
-                    "ModifyProjects",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:projects"))));
-                
-                options.AddPolicy(
-                    "ModifyContexts",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:contexts"))));
-                
-                options.AddPolicy(
-                    "ModifyCategories",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:categories"))));
-                
-                options.AddPolicy(
-                    "ReadContexts",
-                    policy => policy.Requirements.Add(
-                        new CompositeOrRequirement(
-                            new JwtPermissionRequirement("read:contexts"),
-                            new AuthConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadContexts))));
+                options.UseOpenIddict();
+            });
+
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+
+                })
+                .AddIdentityCookies(o => { });
+
+            services.AddIdentityCore<User>(options =>
+                {
+                    options.Stores.MaxLengthForKeys = 128;
+                    options.SignIn.RequireConfirmedAccount = false;
+                })
+                .AddDefaultUI()
+                .AddDefaultTokenProviders()
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<MemContext>();
+
+            services.Configure<IdentityOptions>(options =>
+            {
+                options.ClaimsIdentity.UserNameClaimType = OpenIddictConstants.Claims.Name;
+                options.ClaimsIdentity.UserIdClaimType = OpenIddictConstants.Claims.Subject;
+                options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
+            });
+
+            services.AddScoped<AddTranslations>();
+            services.AddScoped<QueryTranslationsHandler>();
+            services.AddScoped<GetContextsHandler>();
+            services.AddScoped<DeleteContextHandler>();
+            services.AddScoped<UpdateTranslationHandler>();
+            services.AddScoped<AddProjectHandler>();
+            services.AddScoped<AddContextHandler>();
+            services.AddScoped<GetContextDataHandler>();
+            services.AddScoped<DeleteTranslationHandler>();
+            services.AddScoped<DeleteProjectHandler>();
+            services.AddScoped<QueryCategoriesHandler>();
+            services.AddScoped<AddCategoriesHandler>();
+            services.AddScoped<DeleteCategoryHandler>();
+            services.AddScoped<ListProjectsHandler>();
+            services.AddScoped<ListInvitationsHandler>();
+            services.AddScoped<SendInvitationHandler>();
+            services.AddScoped<AcceptInvitationHandler>();
+            services.AddScoped<RejectInvitationHandler>();
+            services.AddScoped<CancelInvitationHandler>();
+            
+            services.AddQuartz(options =>
+            {
+                options.UseMicrosoftDependencyInjectionJobFactory();
+                options.UseSimpleTypeLoader();
+                options.UseInMemoryStore();
             });
             
+            services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("ApiAllowAnonymous",
+                    new AuthorizationPolicy(
+                        new []{ new AssertionRequirement(auth => true) },
+                        new []{ OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme }));
+                
+                options.AddPolicy("ApiRejectAnonymous",
+                    new AuthorizationPolicy(
+                        new []{ new DenyAnonymousAuthorizationRequirement() },
+                        new []{ OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme }));
+            });
+            
+            services.AddOpenIddict()
+                .AddCore(options =>
+                {
+                    // Configure OpenIddict to use the Entity Framework Core stores and models.
+                    // Note: call ReplaceDefaultEntities() to replace the default OpenIddict entities.
+                    options.UseEntityFrameworkCore()
+                        .UseDbContext<MemContext>();
+
+                    // Enable Quartz.NET integration.
+                    options.UseQuartz();
+                })
+                .AddServer(options =>
+                {
+                    options.DisableAccessTokenEncryption();
+
+                    options
+                        .SetAuthorizationEndpointUris("/connect/authorize")
+                        .SetLogoutEndpointUris("/connect/logout")
+                        .SetTokenEndpointUris("/connect/token")
+                        .SetUserinfoEndpointUris("/connect/userinfo");
+                    
+                    options.RegisterScopes(
+                        OpenIddictConstants.Scopes.Email,
+                        OpenIddictConstants.Scopes.Profile,
+                        OpenIddictConstants.Scopes.Roles);
+                    
+                    options
+                        .AllowAuthorizationCodeFlow()
+                        .AllowRefreshTokenFlow();
+                    
+                    options
+                        .AddDevelopmentEncryptionCertificate()
+                        .AddDevelopmentSigningCertificate();
+                    
+                    options
+                        .UseAspNetCore()
+                        .EnableAuthorizationEndpointPassthrough()
+                        .EnableLogoutEndpointPassthrough()
+                        .EnableStatusCodePagesIntegration()
+                        .EnableTokenEndpointPassthrough()
+                        .DisableTransportSecurityRequirement();
+                })
+                .AddValidation(options =>
+                {
+                    options.UseLocalServer();
+                    options.UseAspNetCore();
+                });
+
             services
-                .AddControllers()
+                .AddRazorPages()
                 .AddJsonOptions(opts =>
                 {
                     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
-            
+
             services.AddSingleton<IAuthorizationHandler, MemAuthorizationHandler>();
+            
+            services.AddHostedService<Worker>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -202,15 +254,21 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "DidacticalEnigma.Mem V1");
-                c.RoutePrefix = "";
+                c.RoutePrefix = "Api";
             });
-
+            
+            app.UseStaticFiles();
+            
             app.UseRouting();
 
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapRazorPages();
+                endpoints.MapControllers();
+            });
         }
     }
 }

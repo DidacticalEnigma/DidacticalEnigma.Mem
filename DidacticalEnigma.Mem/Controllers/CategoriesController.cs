@@ -1,10 +1,14 @@
 using System;
 using System.Threading.Tasks;
+using DidacticalEnigma.Mem.Extensions;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
+using DidacticalEnigma.Mem.Translation.Categories;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace DidacticalEnigma.Mem.Controllers
@@ -15,13 +19,14 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddCategories")]
         [HttpPost("categories")]
-        [Authorize("ModifyCategories")]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<AddCategoriesResult>> AddCategories(
             [FromQuery] string projectName,
             [FromBody] AddCategoriesParams request,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] AddCategoriesHandler addCategoriesHandler)
         {
-            var result = await translationMemory.AddCategories(
+            var result = await addCategoriesHandler.Add(
+                Request.GetUserName(),
                 projectName,
                 request);
             return result.Unwrap(new AddCategoriesResult());
@@ -29,25 +34,28 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "DeleteCategory")]
         [HttpDelete("categories")]
-        [Authorize("ModifyCategories")]
-        public async Task<ActionResult<DeleteCategoryResult>> AddCategories(
+        [Authorize("ApiRejectAnonymous")]
+        public async Task<ActionResult<DeleteCategoryResult>> DeleteCategory(
             [FromQuery] string projectName,
             [FromQuery] Guid categoryId,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] DeleteCategoryHandler deleteCategoryHandler)
         {
-            var result = await translationMemory.DeleteCategory(
+            var result = await deleteCategoryHandler.Delete(
+                Request.GetUserName(),
+                projectName,
                 categoryId);
             return result.Unwrap(new DeleteCategoryResult());
         }
         
         [SwaggerOperation(OperationId = "GetCategories")]
         [HttpGet("categories")]
-        [Authorize("ReadTranslations")]
+        [Authorize("ApiAllowAnonymous")]
         public async Task<ActionResult<QueryCategoriesResult>> GetCategories(
             [FromQuery] string projectName,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] QueryCategoriesHandler queryCategoriesHandler)
         {
-            var result = await translationMemory.QueryCategories(
+            var result = await queryCategoriesHandler.Query(
+                Request.GetUserName(),
                 projectName);
             return result.Unwrap();
         }

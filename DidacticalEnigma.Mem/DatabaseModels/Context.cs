@@ -17,5 +17,11 @@ namespace DidacticalEnigma.Mem.DatabaseModels
         public uint? ContentObjectId { get; set; }
         
         public AllowedMediaType? MediaType { get; set; }
+        
+        public DateTime CreationTime { get; set; }
+        
+        public User CreatedBy { get; set; }
+        
+        public string CreatedById { get; set; }
     }
 }

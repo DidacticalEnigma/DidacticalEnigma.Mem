@@ -23,6 +23,14 @@ namespace DidacticalEnigma.Mem.DatabaseModels
 
         public int ParentId { get; set; }
         
+        public User CreatedBy { get; set; }
+        
+        public string CreatedById { get; set; }
+        
+        public User ModifiedBy { get; set; }
+        
+        public string ModifiedById { get; set; }
+        
         public DateTime CreationTime { get; set; }
         
         public DateTime ModificationTime { get; set; }

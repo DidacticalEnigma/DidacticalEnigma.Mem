@@ -5,10 +5,12 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
+using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Extensions;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Translations
@@ -18,23 +20,40 @@ namespace DidacticalEnigma.Mem.Translation.Translations
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
+        private readonly UserManager<User> userManager;
 
         public AddTranslations(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
-            ICurrentTimeProvider currentTimeProvider)
+            ICurrentTimeProvider currentTimeProvider,
+            UserManager<User> userManager)
         {
             this.dbContext = dbContext;
             this.analyzer = analyzer;
             this.currentTimeProvider = currentTimeProvider;
+            this.userManager = userManager;
         }
         
         public async Task<Result<AddTranslationsResult, Unit>> Add(
+            string? userName,
             string projectName,
             IReadOnlyCollection<AddTranslationParams> translations,
             bool allowPartialAdd = false)
         {
-            var project = await this.dbContext.Projects.FirstOrDefaultAsync(p => p.Name == projectName);
+            if (userName == null)
+            {
+                return Result<AddTranslationsResult, Unit>.Failure(
+                    HttpStatusCode.Forbidden,
+                    "unregistered users can't add translations");
+            }
+
+            var user = await userManager.FindByNameAsync(userName);
+            
+            var project = await this.dbContext.Projects
+                .FirstOrDefaultAsync(p =>
+                    p.Name == projectName &&
+                    (p.Owner.UserName == userName ||
+                     p.Contributors.Any(contributor => contributor.User.UserName == userName)));
             if (project == null)
             {
                 return Result<AddTranslationsResult, Unit>.Failure(
@@ -71,7 +90,7 @@ namespace DidacticalEnigma.Mem.Translation.Translations
 
             var translationsToAdd = translations
                 .Where(translation =>
-                    alreadyExistingTranslationIds.Contains(translation.CorrelationId));
+                    !alreadyExistingTranslationIds.Contains(translation.CorrelationId));
             
             foreach (var translation in translationsToAdd)
             {
@@ -87,7 +106,9 @@ namespace DidacticalEnigma.Mem.Translation.Translations
                         ""CreationTime"",
                         ""ModificationTime"",
                         ""Notes"",
-                        ""AssociatedData"")
+                        ""AssociatedData"",
+                        ""CreatedById"",
+                        ""ModifiedById"")
                     VALUES (
                         {Guid.NewGuid()},
                         {translation.CorrelationId},
@@ -99,7 +120,9 @@ namespace DidacticalEnigma.Mem.Translation.Translations
                         {currentTime},
                         {currentTime},
                         {JsonSerializer.Serialize(Mapper.Map(translation.TranslationNotes))}::jsonb,
-                        {JsonSerializer.Serialize(translation.AssociatedData)}::jsonb);");
+                        {JsonSerializer.Serialize(translation.AssociatedData)}::jsonb,
+                        {user.Id},
+                        {user.Id});");
             }
             
             await this.dbContext.SaveChangesAsync();
