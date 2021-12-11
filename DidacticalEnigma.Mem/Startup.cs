@@ -1,17 +1,13 @@
 using System.IO;
 using System.Text.Json.Serialization;
 using DidacticalEnigma.Core.Models.LanguageService;
-using DidacticalEnigma.Mem.Authentication;
 using DidacticalEnigma.Mem.Configurations;
 using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Services;
-using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.Categories;
 using DidacticalEnigma.Mem.Translation.Contexts;
-using DidacticalEnigma.Mem.Translation.IoModels;
 using DidacticalEnigma.Mem.Translation.Projects;
 using DidacticalEnigma.Mem.Translation.Translations;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Builder;
@@ -87,6 +83,10 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             var authConfigurationSection = Configuration.GetSection("AuthConfiguration");
             services.Configure<AuthConfiguration>(authConfigurationSection);
             var authConfiguration = authConfigurationSection.Get<AuthConfiguration>();
+            
+            var quartzConfigurationSection = Configuration.GetSection("QuartzConfiguration");
+            services.Configure<QuartzConfiguration>(quartzConfigurationSection);
+            var quartzConfiguration = authConfigurationSection.Get<QuartzConfiguration>();
 
             services.AddSingleton<IMorphologicalAnalyzer<IpadicEntry>>(provider => new MeCabIpadic(new MeCabParam()
             {
@@ -129,7 +129,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
             });
 
-            services.AddScoped<AddTranslations>();
+            services.AddScoped<AddTranslationsHandler>();
             services.AddScoped<QueryTranslationsHandler>();
             services.AddScoped<GetContextsHandler>();
             services.AddScoped<DeleteContextHandler>();
@@ -148,15 +148,18 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<AcceptInvitationHandler>();
             services.AddScoped<RejectInvitationHandler>();
             services.AddScoped<CancelInvitationHandler>();
-            
-            services.AddQuartz(options =>
+
+            if (quartzConfiguration.EnableQuartz)
             {
-                options.UseMicrosoftDependencyInjectionJobFactory();
-                options.UseSimpleTypeLoader();
-                options.UseInMemoryStore();
-            });
-            
-            services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+                services.AddQuartz(options =>
+                {
+                    options.UseMicrosoftDependencyInjectionJobFactory();
+                    options.UseSimpleTypeLoader();
+                    options.UseInMemoryStore();
+                });
+                
+                services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+            }
 
             services.AddAuthorization(options =>
             {
@@ -226,8 +229,6 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
 
-            services.AddSingleton<IAuthorizationHandler, MemAuthorizationHandler>();
-            
             services.AddHostedService<Worker>();
         }
 

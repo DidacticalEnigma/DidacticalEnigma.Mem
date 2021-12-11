@@ -34,7 +34,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
                 .Select(project => new
                 {
                     ProjectName = project.Name,
-                    IsOwner = project.Owner.UserName == userName,
+                    Owner = project.Owner.UserName,
                     CanContribute = project.Owner.UserName == userName ||
                         project.Contributors.Any(contributor => contributor.User.UserName == userName)
                 })
@@ -46,7 +46,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
                     .Select(projectInfo => new QueryProjectResult()
                     {
                         Name = projectInfo.ProjectName,
-                        IsOwner = projectInfo.IsOwner,
+                        Owner = projectInfo.Owner,
                         CanContribute = projectInfo.CanContribute
                     })
                     .ToList()

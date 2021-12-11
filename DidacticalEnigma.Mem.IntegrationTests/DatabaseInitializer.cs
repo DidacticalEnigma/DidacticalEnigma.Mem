@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace DidacticalEnigma.Mem.IntegrationTests
@@ -12,7 +13,7 @@ namespace DidacticalEnigma.Mem.IntegrationTests
         
         private static bool databaseInitialized = false;
         
-        public static void InitializeDb(MemContext db)
+        public static void InitializeDb(IServiceProvider serviceProvider)
         {
             lock (databaseLocker)
             {
@@ -20,6 +21,8 @@ namespace DidacticalEnigma.Mem.IntegrationTests
                 {
                     return;
                 }
+
+                var db = serviceProvider.GetRequiredService<MemContext>();
                 
                 db.Database.Migrate();
                 
@@ -35,9 +38,13 @@ namespace DidacticalEnigma.Mem.IntegrationTests
 
         private static void Reset(MemContext db)
         {
+            db.Memberships.RemoveRange(db.Memberships);
+            db.Invitations.RemoveRange(db.Invitations);
             db.TranslationPairs.RemoveRange(db.TranslationPairs);
             db.Contexts.RemoveRange(db.Contexts);
+            db.Categories.RemoveRange(db.Categories);
             db.Projects.RemoveRange(db.Projects);
+            db.Users.RemoveRange(db.Users);
         }
     }
 }

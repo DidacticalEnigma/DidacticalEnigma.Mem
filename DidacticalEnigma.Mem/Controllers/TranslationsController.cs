@@ -23,9 +23,9 @@ namespace DidacticalEnigma.Mem.Controllers
         public async Task<ActionResult<AddTranslationsResult>> AddTranslations(
             [FromQuery] string projectName,
             [FromBody] AddTranslationsParams request,
-            [FromServices] AddTranslations addTranslations)
+            [FromServices] AddTranslationsHandler addTranslationsHandler)
         {
-            var result = await addTranslations.Add(
+            var result = await addTranslationsHandler.Add(
                 Request.GetUserName(),
                 projectName,
                 request.Translations,

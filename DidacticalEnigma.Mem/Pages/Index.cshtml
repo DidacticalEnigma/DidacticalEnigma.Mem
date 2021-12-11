@@ -5,6 +5,19 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <p>List of projects:</p>
+    <ul>
+        @foreach (var project in Model.Projects)
+        {
+            <li><i>@project.Name</i> by <i>@project.Owner</i></li>
+        }
+    </ul>
+    
+    <p>List of invitations:</p>
+    <ul>
+        @foreach (var invitation in Model.Invitations)
+        {
+            <li><i>@invitation.InvitingUser</i> invites you to collaborate on the project <i>@invitation.ProjectName</i></li>
+        }
+    </ul>
 </div>

@@ -37,6 +37,7 @@
 
     <ItemGroup>
       <Folder Include="Attributes" />
+      <Folder Include="Authentication" />
       <Folder Include="Migrations" />
     </ItemGroup>
 </Project>

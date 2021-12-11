@@ -122,7 +122,7 @@ namespace DidacticalEnigma.Mem.Translation.Translations
 
             string? newPaginationToken = null;
             
-            if (results.Count < limit)
+            if (results.Count < resultLimit)
             {
                 newPaginationToken = null;
             }

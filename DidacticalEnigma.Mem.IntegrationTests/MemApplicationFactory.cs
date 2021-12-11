@@ -39,21 +39,10 @@ namespace DidacticalEnigma.Mem.IntegrationTests
 
         protected virtual void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-            {
-                var authConfiguration = Services.GetService<IOptions<AuthConfiguration>>()!.Value;
-
-                var config = new OpenIdConnectConfiguration()
-                {
-                    Issuer = authConfiguration.Authority
-                };
-
-                config.SigningKeys.Add(MockJwtToken.SecurityKey);
-                options.Configuration = config;
-            });
+            
         }
 
-        private ConcurrentDictionary<object, bool> calledFunctions =
+        private static ConcurrentDictionary<object, bool> calledFunctions =
             new ConcurrentDictionary<object, bool>();
 
         public async Task CallOnce<T>(Func<T, Task> function, T param)
@@ -64,24 +53,9 @@ namespace DidacticalEnigma.Mem.IntegrationTests
             }
         }
 
-        public void PrepareDatabase()
+        public void PrepareDatabase(IServiceProvider serviceProvider)
         {
-            using (var scope = this.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<MemContext>();
-                DatabaseInitializer.InitializeDb(db);
-            }
-        }
-
-        public HttpClient CreateClientWithAuth(params string[] perms)
-        {
-            var client = this.CreateClient();
-            var authConfiguration = this.Services.GetRequiredService<IOptions<AuthConfiguration>>().Value;
-            var claims = perms.Select(perm => new Claim("permissions", perm, authConfiguration.Authority));
-            var token = MockJwtToken.GenerateJwtToken(claims, authConfiguration);
-            client.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse($"Bearer {token}");
-
-            return client;
+            DatabaseInitializer.InitializeDb(serviceProvider);
         }
     }
 }

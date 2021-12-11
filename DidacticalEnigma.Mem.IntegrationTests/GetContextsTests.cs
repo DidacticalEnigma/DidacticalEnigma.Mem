@@ -10,37 +10,26 @@ using Xunit;
 
 namespace DidacticalEnigma.Mem.IntegrationTests
 {
-    public class GetContextsTests : IClassFixture<MemApplicationFactory>
+    public class GetContextsTests : BaseIntegrationTest
     {
         private const string ProjectName = "QueryTestProject";
-        
-        private readonly MemApplicationFactory webApplicationFactory;
 
-        public GetContextsTests(
-            MemApplicationFactory webApplicationFactory)
+        public GetContextsTests()
         {
-            this.webApplicationFactory = webApplicationFactory;
-            this.webApplicationFactory.PrepareDatabase();
+            
         }
         
         [Fact]
         public async Task GetByQuery()
         {
-            var client = this.webApplicationFactory.CreateClientWithAuth(
-                "modify:contexts",
-                "read:contexts",
-                "modify:projects");
-
-            await this.webApplicationFactory.CallOnce(setUpPrecondition, client);
+            await this.WebApplicationFactory.CallOnce(setUpPrecondition, this);
 
             
         }
         
-        private static readonly Func<HttpClient, Task> setUpPrecondition = SetUpPrecondition;
-
-        private static async Task SetUpPrecondition(HttpClient client)
+        private static readonly Func<GetContextsTests, Task> setUpPrecondition = async self =>
         {
             
-        }
+        };
     }
 }

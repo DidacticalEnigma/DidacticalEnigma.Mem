@@ -15,14 +15,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Translations
 {
-    public class AddTranslations
+    public class AddTranslationsHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         private readonly UserManager<User> userManager;
 
-        public AddTranslations(
+        public AddTranslationsHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider,

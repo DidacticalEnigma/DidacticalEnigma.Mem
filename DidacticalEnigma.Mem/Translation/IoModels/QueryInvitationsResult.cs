@@ -4,8 +4,8 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
 {
     public class QueryInvitationsResult
     {
-        public IEnumerable<QueryInvitationSentResult> InvitationsPending { get; set; }
+        public IReadOnlyCollection<QueryInvitationSentResult> InvitationsPending { get; set; }
         
-        public IEnumerable<QueryInvitationReceivedResult> InvitationsReceived { get; set; }
+        public IReadOnlyCollection<QueryInvitationReceivedResult> InvitationsReceived { get; set; }
     }
 }
