@@ -147,6 +147,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<SendInvitationHandler>();
             services.AddScoped<AcceptInvitationHandler>();
             services.AddScoped<RejectInvitationHandler>();
+            services.AddScoped<CancelInvitationHandler>();
             
             services.AddQuartz(options =>
             {

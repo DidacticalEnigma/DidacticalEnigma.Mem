@@ -25,13 +25,13 @@ namespace DidacticalEnigma.Mem.Translation.Categories
         }
         
         public async Task<Result<QueryCategoriesResult, Unit>> Query(
-            string? userId,
+            string? userName,
             string projectName)
         {
             if (!this.dbContext.Projects.Any(project =>
                     (project.PublicallyReadable ||
-                     project.OwnerId == userId ||
-                     project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                     project.Owner.UserName == userName ||
+                     project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     project.Name == projectName))
             {
                 return Result<QueryCategoriesResult, Unit>.Failure(

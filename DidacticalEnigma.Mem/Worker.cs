@@ -33,11 +33,11 @@ namespace DidacticalEnigma.Mem
                     Type = ClientTypes.Public,
                     PostLogoutRedirectUris =
                     {
-                        new Uri("https://localhost:44310/authentication/logout-callback")
+                        new Uri("http://localhost:50000/")
                     },
                     RedirectUris =
                     {
-                        new Uri("https://localhost:44310/authentication/login-callback")
+                        new Uri("http://localhost:50000/")
                     },
                     Permissions =
                     {

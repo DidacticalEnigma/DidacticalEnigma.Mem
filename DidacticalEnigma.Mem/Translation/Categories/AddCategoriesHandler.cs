@@ -25,13 +25,15 @@ namespace DidacticalEnigma.Mem.Translation.Categories
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Add(string? userId, string projectName,
+        public async Task<Result<Unit, Unit>> Add(
+            string? userName,
+            string projectName,
             AddCategoriesParams categoriesParams)
         {
             var projectId = await this.dbContext.Projects
                 .Where(project =>
-                    (project.OwnerId == userId
-                     || project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    (project.Owner.UserName == userName
+                     || project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     project.Name == projectName)
                 .Select(project => (int?)project.Id)
                 .FirstOrDefaultAsync();

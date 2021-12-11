@@ -38,6 +38,5 @@
     <ItemGroup>
       <Folder Include="Attributes" />
       <Folder Include="Migrations" />
-      <Folder Include="Translation\Services\TranslationMemory" />
     </ItemGroup>
 </Project>

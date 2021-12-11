@@ -42,10 +42,13 @@ namespace DidacticalEnigma.Mem.Translation.Projects
                     HttpStatusCode.Conflict,
                     "project with a given name already exists");
             }
+
+            var user = await this.userManager.FindByNameAsync(userName);
             project = new Project()
             {
                 Name = projectName,
-                Owner = await this.userManager.FindByNameAsync(userName),
+                Owner = user,
+                OwnerId = user.Id,
                 PublicallyReadable = publicallyReadable
             };
             this.dbContext.Projects.Add(project);

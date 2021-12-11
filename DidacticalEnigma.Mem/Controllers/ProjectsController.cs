@@ -44,6 +44,20 @@ namespace DidacticalEnigma.Mem.Controllers
             return result.Unwrap(new RejectInvitationResult());
         }
         
+        [SwaggerOperation(OperationId = "CancelInvitation")]
+        [HttpPost("projects/invitations/cancel")]
+        [Authorize("ApiRejectAnonymous")]
+        public async Task<ActionResult<CancelInvitationResult>> CancelInvitation(
+            [FromBody] CancelInvitationParams rejectInvitationParams,
+            [FromServices] CancelInvitationHandler cancelInvitationHandler)
+        {
+            var result = await cancelInvitationHandler.Reject(
+                Request.GetUserName(),
+                rejectInvitationParams.ProjectName,
+                rejectInvitationParams.InvitedUserName);
+            return result.Unwrap(new CancelInvitationResult());
+        }
+        
         [SwaggerOperation(OperationId = "SendInvitation")]
         [HttpPost("projects/invitations")]
         [Authorize("ApiRejectAnonymous")]
@@ -57,6 +71,21 @@ namespace DidacticalEnigma.Mem.Controllers
                 projectName,
                 sendInvitationParams.InvitedUserName);
             return result.Unwrap(new SendInvitationResult());
+        }
+        
+        [SwaggerOperation(OperationId = "RemoveContributor")]
+        [HttpDelete("projects/contributors")]
+        [Authorize("ApiRejectAnonymous")]
+        public async Task<ActionResult<RemoveContributorResult>> RemoveContributor(
+            [FromQuery] string projectName,
+            [FromQuery] string contributorName,
+            [FromServices] RemoveContributorHandler removeContributorHandler)
+        {
+            var result = await removeContributorHandler.Remove(
+                Request.GetUserName(),
+                projectName,
+                contributorName);
+            return result.Unwrap(new RemoveContributorResult());
         }
         
         [SwaggerOperation(OperationId = "QueryInvitations")]

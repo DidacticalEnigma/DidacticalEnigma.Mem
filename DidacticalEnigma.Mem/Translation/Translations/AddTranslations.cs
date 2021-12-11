@@ -50,7 +50,10 @@ namespace DidacticalEnigma.Mem.Translation.Translations
             var user = await userManager.FindByNameAsync(userName);
             
             var project = await this.dbContext.Projects
-                .FirstOrDefaultAsync(p => p.Name == projectName);
+                .FirstOrDefaultAsync(p =>
+                    p.Name == projectName &&
+                    (p.Owner.UserName == userName ||
+                     p.Contributors.Any(contributor => contributor.User.UserName == userName)));
             if (project == null)
             {
                 return Result<AddTranslationsResult, Unit>.Failure(
@@ -87,7 +90,7 @@ namespace DidacticalEnigma.Mem.Translation.Translations
 
             var translationsToAdd = translations
                 .Where(translation =>
-                    alreadyExistingTranslationIds.Contains(translation.CorrelationId));
+                    !alreadyExistingTranslationIds.Contains(translation.CorrelationId));
             
             foreach (var translation in translationsToAdd)
             {

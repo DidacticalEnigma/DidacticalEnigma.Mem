@@ -25,12 +25,15 @@ namespace DidacticalEnigma.Mem.Translation.Categories
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Delete(string? userId, string projectName, Guid categoryId)
+        public async Task<Result<Unit, Unit>> Delete(
+            string? userName,
+            string projectName,
+            Guid categoryId)
         {
             var category = await this.dbContext.Categories
                 .FirstOrDefaultAsync(category => 
-                    (category.Parent.OwnerId == userId
-                     || category.Parent.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    (category.Parent.Owner.UserName == userName
+                     || category.Parent.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     category.Parent.Name == projectName &&
                     category.Id == categoryId);
             
