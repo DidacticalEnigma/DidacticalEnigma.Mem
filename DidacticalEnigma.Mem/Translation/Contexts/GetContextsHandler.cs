@@ -9,13 +9,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Contexts
 {
-    public class GetContexts
+    public class GetContextsHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public GetContexts(
+        public GetContextsHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -26,6 +26,7 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
         }
         
         public async Task<Result<QueryContextsResult, Unit>> Get(
+            string? userId,
             Guid? id,
             string? projectName,
             string? correlationId)
@@ -54,6 +55,8 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             if (correlationId != null && projectName != null)
             {
                 filteredContexts = filteredContexts.Where(context =>
+                    (context.Project.OwnerId == userId
+                     || context.Project.Contributors.Any(contributor => contributor.UserId == userId)) &&
                     context.Project.Name == projectName &&
                     context.CorrelationId.StartsWith(correlationId));
             }

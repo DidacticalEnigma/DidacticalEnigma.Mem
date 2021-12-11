@@ -11,13 +11,13 @@ using Npgsql;
 
 namespace DidacticalEnigma.Mem.Translation.Contexts
 {
-    public class GetContextData
+    public class GetContextDataHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public GetContextData(
+        public GetContextDataHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -27,9 +27,13 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<FileResult, Unit>> Get(Guid id)
+        public async Task<Result<FileResult, Unit>> Get(string? userId, Guid id)
         {
             var contextData = await this.dbContext.Contexts
+                .Where(context => 
+                    context.Project.PublicallyReadable ||
+                    (context.Project.OwnerId == userId
+                     || context.Project.Contributors.Any(contributor => contributor.UserId == userId)))
                 .Select(context => new
                 {
                     Id = context.Id,

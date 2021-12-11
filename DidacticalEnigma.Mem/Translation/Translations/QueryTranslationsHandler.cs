@@ -14,13 +14,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Translations
 {
-    public class QueryTranslations
+    public class QueryTranslationsHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public QueryTranslations(
+        public QueryTranslationsHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -31,6 +31,7 @@ namespace DidacticalEnigma.Mem.Translation.Translations
         }
         
         public async Task<Result<QueryTranslationsResult, Unit>> Query(
+            string? userId,
             string? projectName,
             string? correlationIdStart,
             string? queryText,
@@ -48,7 +49,18 @@ namespace DidacticalEnigma.Mem.Translation.Translations
             var translations = this.dbContext.TranslationPairs
                 .OrderBy(translation => translation.CorrelationId)
                 .AsQueryable();
-            
+
+            if (userId == null)
+            {
+                translations = translations.Where(translation => translation.Parent.PublicallyReadable);
+            }
+            else
+            {
+                translations = translations.Where(translation =>
+                    translation.Parent.PublicallyReadable
+                    || translation.Parent.Owner.Id == userId
+                    || translation.Parent.Contributors.Any(contributor => contributor.UserId == userId));
+            }
             
             if(projectName != null)
                 translations = translations.Where(translationPair => translationPair.Parent.Name == projectName);

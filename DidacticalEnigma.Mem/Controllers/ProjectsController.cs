@@ -1,7 +1,9 @@
 using System.Threading.Tasks;
+using DidacticalEnigma.Mem.Extensions;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using DidacticalEnigma.Mem.Translation.Projects;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,33 +18,38 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddProject")]
         [HttpPost("projects")]
-        [Authorize("ModifyProjects", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<AddProjectResult>> AddProject(
             [FromQuery] string projectName,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] AddProjectHandler addProjectHandler)
         {
-            var result = await translationMemory.AddProject(projectName);
+            var result = await addProjectHandler.Add(
+                Request.GetUserId(),
+                projectName);
             return result.Unwrap(new AddProjectResult());
         }
         
         [SwaggerOperation(OperationId = "DeleteProject")]
         [HttpDelete("projects")]
-        [Authorize("ModifyProjects", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<DeleteProjectResult>> DeleteProject(
             [FromQuery] string projectName,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] DeleteProjectHandler deleteProjectHandler)
         {
-            var result = await translationMemory.DeleteProject(projectName);
+            var result = await deleteProjectHandler.Delete(
+                Request.GetUserId(),
+                projectName);
             return result.Unwrap(new DeleteProjectResult());
         }
         
         [SwaggerOperation(OperationId = "ListProjects")]
         [HttpGet("projects")]
-        [Authorize("EnumerateProjects", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        [Authorize("ApiAllowAnonymous")]
         public async Task<ActionResult<QueryProjectsResult>> ListProjects(
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] ListProjectsHandler listProjectsHandler)
         {
-            var result = await translationMemory.ListProjects();
+            var result = await listProjectsHandler.Query(
+                Request.GetUserId());
             return result.Unwrap();
         }
     }

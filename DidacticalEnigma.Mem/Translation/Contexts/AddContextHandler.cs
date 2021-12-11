@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
@@ -11,13 +12,13 @@ using Npgsql;
 
 namespace DidacticalEnigma.Mem.Translation.Contexts
 {
-    public class AddContext
+    public class AddContextHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public AddContext(
+        public AddContextHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -28,6 +29,7 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
         }
         
         public async Task<Result<Unit, Unit>> Add(
+            string? userId,
             Guid id,
             string correlationId,
             string projectName,
@@ -35,6 +37,13 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             string? mediaType,
             string? text)
         {
+            if (text == null && mediaType == null && content == null)
+            {
+                return Result<Unit, Unit>.Failure(
+                    HttpStatusCode.BadRequest,
+                    "either text or content (with its media type) must be specified");
+            }
+            
             var context = await this.dbContext.Contexts.FindAsync(id);
             if (context != null)
             {
@@ -43,21 +52,17 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                     "request with such a guid exists");
             }
 
-            if (text == null && mediaType == null && content == null)
-            {
-                return Result<Unit, Unit>.Failure(
-                    HttpStatusCode.BadRequest,
-                    "either text or content (with its media type) must be specified");
-            }
-            
             var project = await this.dbContext.Projects
-                .FirstOrDefaultAsync(project => project.Name == projectName);
+                .FirstOrDefaultAsync(project =>
+                    (project.OwnerId == userId
+                     || project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    project.Name == projectName);
 
             if (project == null)
             {
                 return Result<Unit, Unit>.Failure(
                     HttpStatusCode.BadRequest,
-                    "project does not exist");
+                    "project not found");
             }
 
             if (content != null && mediaType == null)

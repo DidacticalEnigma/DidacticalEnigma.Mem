@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
@@ -6,15 +7,15 @@ using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation.IoModels;
 using Microsoft.EntityFrameworkCore;
 
-namespace DidacticalEnigma.Mem.Translation.Categories
+namespace DidacticalEnigma.Mem.Translation.Contexts
 {
-    public class DeleteCategory
+    public class DeleteContextHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public DeleteCategory(
+        public DeleteContextHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -24,21 +25,24 @@ namespace DidacticalEnigma.Mem.Translation.Categories
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Delete(Guid categoryId)
+        public async Task<Result<Unit, Unit>> Delete(string? userId, Guid id)
         {
-            var category = await this.dbContext.Categories
-                .FirstOrDefaultAsync(category => category.Id == categoryId);
-            
-            if (category == null)
+            var context = await this.dbContext.Contexts
+                .FirstOrDefaultAsync(context =>
+                    (context.Project.OwnerId == userId
+                     || context.Project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    context.Id == id);
+
+            if (context == null)
             {
                 return Result<Unit, Unit>.Failure(
                     HttpStatusCode.NotFound,
-                    "category not found");
+                    "context not found");
             }
 
-            this.dbContext.Categories.Remove(category);
-            await this.dbContext.SaveChangesAsync();
+            this.dbContext.Contexts.Remove(context);
             
+            await this.dbContext.SaveChangesAsync();
             return Result<Unit, Unit>.Ok(Unit.Value);
         }
     }

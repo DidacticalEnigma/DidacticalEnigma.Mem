@@ -1,7 +1,9 @@
 using System;
 using System.Threading.Tasks;
+using DidacticalEnigma.Mem.Extensions;
 using DidacticalEnigma.Mem.Mappings;
 using DidacticalEnigma.Mem.Translation;
+using DidacticalEnigma.Mem.Translation.Contexts;
 using DidacticalEnigma.Mem.Translation.IoModels;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -17,12 +19,13 @@ namespace DidacticalEnigma.Mem.Controllers
     {
         [SwaggerOperation(OperationId = "AddContext")]
         [HttpPost("contexts")]
-        [Authorize("ModifyContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<AddContextResult>> AddContext(
             [FromForm] AddContextParams request,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] AddContextHandler addContextHandler)
         {
-            var result = await translationMemory.AddContext(
+            var result = await addContextHandler.Add(
+                Request.GetUserId(),
                 request.Id,
                 request.CorrelationId,
                 request.ProjectName,
@@ -36,36 +39,44 @@ namespace DidacticalEnigma.Mem.Controllers
         
         [SwaggerOperation(OperationId = "GetContexts")]
         [HttpGet("contexts")]
-        [Authorize("ReadContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        [Authorize("ApiAllowAnonymous")]
         public async Task<ActionResult<QueryContextsResult>> GetContext(
             [FromQuery] Guid? id,
             [FromQuery] string? projectId,
             [FromQuery] string? correlationId,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] GetContextsHandler getContextsHandler)
         {
-            var result = await translationMemory.GetContexts(id, projectId, correlationId);
+            var result = await getContextsHandler.Get(
+                Request.GetUserId(),
+                id,
+                projectId,
+                correlationId);
             return result.Unwrap();
         }
         
         [SwaggerOperation(OperationId = "GetContextData")]
         [HttpGet("contexts/data")]
-        [Authorize("ReadContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        [Authorize("ApiAllowAnonymous")]
         public async Task<ActionResult> GetContextData(
             [FromQuery] Guid id,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] GetContextDataHandler getContextDataHandler)
         {
-            var result = await translationMemory.GetContextData(id);
+            var result = await getContextDataHandler.Get(
+                Request.GetUserId(),
+                id);
             return result.UnwrapFile();
         }
         
         [SwaggerOperation(OperationId = "DeleteContext")]
         [HttpDelete("contexts")]
-        [Authorize("ModifyContexts", AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+        [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<DeleteContextResult>> DeleteContext(
             [FromQuery] Guid id,
-            [FromServices] ITranslationMemory translationMemory)
+            [FromServices] DeleteContextHandler deleteContextHandler)
         {
-            var result = await translationMemory.DeleteContext(id);
+            var result = await deleteContextHandler.Delete(
+                Request.GetUserId(),
+                id);
             return result.Unwrap(new DeleteContextResult());
         }
     }

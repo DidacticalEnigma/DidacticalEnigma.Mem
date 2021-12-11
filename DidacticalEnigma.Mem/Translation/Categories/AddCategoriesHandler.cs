@@ -9,13 +9,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Categories
 {
-    public class AddCategories
+    public class AddCategoriesHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public AddCategories(
+        public AddCategoriesHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -25,12 +25,14 @@ namespace DidacticalEnigma.Mem.Translation.Categories
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Add(
-            string projectName,
+        public async Task<Result<Unit, Unit>> Add(string? userId, string projectName,
             AddCategoriesParams categoriesParams)
         {
             var projectId = await this.dbContext.Projects
-                .Where(project => project.Name == projectName)
+                .Where(project =>
+                    (project.OwnerId == userId
+                     || project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    project.Name == projectName)
                 .Select(project => (int?)project.Id)
                 .FirstOrDefaultAsync();
 

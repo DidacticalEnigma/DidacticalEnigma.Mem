@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -10,13 +11,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Translations
 {
-    public class UpdateTranslation
+    public class UpdateTranslationHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public UpdateTranslation(
+        public UpdateTranslationHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -27,6 +28,7 @@ namespace DidacticalEnigma.Mem.Translation.Translations
         }
         
         public async Task<Result<Unit, QueryTranslationResult>> Update(
+            string? userId,
             string projectName,
             string correlationId,
             UpdateTranslationParams uploadParams)
@@ -35,6 +37,8 @@ namespace DidacticalEnigma.Mem.Translation.Translations
                 .Include(t => t.Category)
                 .Include(t => t.Parent)
                 .FirstOrDefaultAsync(t =>
+                    (t.Parent.OwnerId == userId 
+                        || t.Parent.Contributors.Any(contributor => contributor.UserId == userId)) &&
                     t.Parent.Name == projectName &&
                     t.CorrelationId == correlationId);
             

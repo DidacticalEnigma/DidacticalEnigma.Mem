@@ -1,20 +1,20 @@
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
-using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation.IoModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Projects
 {
-    public class AddProject
+    public class DeleteProjectHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
 
-        public AddProject(
+        public DeleteProjectHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -24,21 +24,29 @@ namespace DidacticalEnigma.Mem.Translation.Projects
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Add(string projectName)
+        public async Task<Result<Unit, Unit>> Delete(string? userId, string projectName)
         {
-            var project = await this.dbContext.Projects.FirstOrDefaultAsync(
-                p => p.Name == projectName);
-            if (project != null)
+            var project = await this.dbContext.Projects
+                .FirstOrDefaultAsync(project =>
+                    (project.OwnerId == userId
+                     || project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    project.Name == projectName);
+
+            if (project == null)
             {
                 return Result<Unit, Unit>.Failure(
-                    HttpStatusCode.Conflict,
-                    "project with a given name already exists");
+                    HttpStatusCode.NotFound,
+                    "project not found");
             }
-            project = new Project()
+
+            if (project.OwnerId != userId)
             {
-                Name = projectName
-            };
-            this.dbContext.Projects.Add(project);
+                return Result<Unit, Unit>.Failure(
+                    HttpStatusCode.Forbidden,
+                    "only the owner of the project can remove a project");
+            }
+
+            this.dbContext.Projects.Remove(project);
             
             await this.dbContext.SaveChangesAsync();
             return Result<Unit, Unit>.Ok(Unit.Value);

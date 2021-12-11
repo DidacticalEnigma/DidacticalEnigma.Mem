@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using DidacticalEnigma.Core.Models.LanguageService;
@@ -7,13 +8,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Translations
 {
-    public class DeleteTranslation
+    public class DeleteTranslationHandler
     {
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
         
-        public DeleteTranslation(
+        public DeleteTranslationHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
             ICurrentTimeProvider currentTimeProvider)
@@ -23,10 +24,15 @@ namespace DidacticalEnigma.Mem.Translation.Translations
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Delete(string projectName, string correlationId)
+        public async Task<Result<Unit, Unit>> Delete(
+            string? userId,
+            string projectName,
+            string correlationId)
         {
             var translation = await this.dbContext.TranslationPairs
                 .FirstOrDefaultAsync(t =>
+                    (t.Parent.OwnerId == userId
+                        || t.Parent.Contributors.Any(contributor => contributor.UserId == userId)) &&
                     t.Parent.Name == projectName &&
                     t.CorrelationId == correlationId);
             

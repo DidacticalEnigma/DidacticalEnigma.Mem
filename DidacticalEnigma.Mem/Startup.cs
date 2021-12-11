@@ -12,6 +12,7 @@ using DidacticalEnigma.Mem.Translation.Projects;
 using DidacticalEnigma.Mem.Translation.Translations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -24,6 +25,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using NMeCab;
 using OpenIddict.Abstractions;
+using OpenIddict.Validation.AspNetCore;
 using Quartz;
 using Swashbuckle.AspNetCore.Filters;
 
@@ -93,8 +95,6 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
 
             services.AddSingleton<ICurrentTimeProvider, CurrentTimeProvider>();
 
-            services.AddScoped<ITranslationMemory, TranslationMemory>();
-            
             services.AddDbContext<MemContext>(options =>
             {
                 options.UseNpgsql(databaseConfiguration.ConnectionString);
@@ -103,13 +103,23 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             });
 
             services
-                .AddDefaultIdentity<User>(options =>
+                .AddAuthentication(options =>
                 {
+                    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+
+                })
+                .AddIdentityCookies(o => { });
+
+            services.AddIdentityCore<User>(options =>
+                {
+                    options.Stores.MaxLengthForKeys = 128;
                     options.SignIn.RequireConfirmedAccount = false;
                 })
+                .AddDefaultUI()
+                .AddDefaultTokenProviders()
                 .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<MemContext>()
-                .AddDefaultTokenProviders();
+                .AddEntityFrameworkStores<MemContext>();
 
             services.Configure<IdentityOptions>(options =>
             {
@@ -119,19 +129,19 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             });
 
             services.AddScoped<AddTranslations>();
-            services.AddScoped<QueryTranslations>();
-            services.AddScoped<GetContexts>();
-            services.AddScoped<DeleteContext>();
-            services.AddScoped<UpdateTranslation>();
-            services.AddScoped<AddProject>();
-            services.AddScoped<AddContext>();
-            services.AddScoped<GetContextData>();
-            services.AddScoped<DeleteTranslation>();
-            services.AddScoped<DeleteProject>();
-            services.AddScoped<QueryCategories>();
-            services.AddScoped<AddCategories>();
-            services.AddScoped<DeleteCategory>();
-            services.AddScoped<ListProjects>();
+            services.AddScoped<QueryTranslationsHandler>();
+            services.AddScoped<GetContextsHandler>();
+            services.AddScoped<DeleteContextHandler>();
+            services.AddScoped<UpdateTranslationHandler>();
+            services.AddScoped<AddProjectHandler>();
+            services.AddScoped<AddContextHandler>();
+            services.AddScoped<GetContextDataHandler>();
+            services.AddScoped<DeleteTranslationHandler>();
+            services.AddScoped<DeleteProjectHandler>();
+            services.AddScoped<QueryCategoriesHandler>();
+            services.AddScoped<AddCategoriesHandler>();
+            services.AddScoped<DeleteCategoryHandler>();
+            services.AddScoped<ListProjectsHandler>();
             
             services.AddQuartz(options =>
             {
@@ -144,55 +154,15 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
 
             services.AddAuthorization(options =>
             {
-                options.AddPolicy(
-                    "ReadTranslations",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("read:translations"),
-                                new AuthConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadTranslations))));
+                options.AddPolicy("ApiAllowAnonymous",
+                    new AuthorizationPolicy(
+                        new []{ new AssertionRequirement(auth => true) },
+                        new []{ OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme }));
                 
-                options.AddPolicy(
-                    "EnumerateProjects",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("read:listOfProjects"))));
-                
-                options.AddPolicy(
-                    "ModifyTranslations",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:translations"))));
-                
-                options.AddPolicy(
-                    "ModifyProjects",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:projects"))));
-                
-                options.AddPolicy(
-                    "ModifyContexts",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:contexts"))));
-                
-                options.AddPolicy(
-                    "ModifyCategories",
-                    policy =>
-                        policy.Requirements.Add(
-                            new CompositeOrRequirement(
-                                new JwtPermissionRequirement("modify:categories"))));
-                
-                options.AddPolicy(
-                    "ReadContexts",
-                    policy => policy.Requirements.Add(
-                        new CompositeOrRequirement(
-                            new JwtPermissionRequirement("read:contexts"),
-                            new AuthConfigurationPolicyRequirement(config => config.AnonymousUsersCanReadContexts))));
+                options.AddPolicy("ApiRejectAnonymous",
+                    new AuthorizationPolicy(
+                        new []{ new DenyAnonymousAuthorizationRequirement() },
+                        new []{ OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme }));
             });
             
             services.AddOpenIddict()
