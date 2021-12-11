@@ -25,7 +25,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] AddContextHandler addContextHandler)
         {
             var result = await addContextHandler.Add(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 request.Id,
                 request.CorrelationId,
                 request.ProjectName,
@@ -47,7 +47,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] GetContextsHandler getContextsHandler)
         {
             var result = await getContextsHandler.Get(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 id,
                 projectId,
                 correlationId);
@@ -62,7 +62,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] GetContextDataHandler getContextDataHandler)
         {
             var result = await getContextDataHandler.Get(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 id);
             return result.UnwrapFile();
         }
@@ -75,7 +75,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] DeleteContextHandler deleteContextHandler)
         {
             var result = await deleteContextHandler.Delete(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 id);
             return result.Unwrap(new DeleteContextResult());
         }

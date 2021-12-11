@@ -25,12 +25,14 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Delete(string? userId, Guid id)
+        public async Task<Result<Unit, Unit>> Delete(
+            string? userName,
+            Guid id)
         {
             var context = await this.dbContext.Contexts
                 .FirstOrDefaultAsync(context =>
-                    (context.Project.OwnerId == userId
-                     || context.Project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    (context.Project.Owner.UserName == userName
+                     || context.Project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     context.Id == id);
 
             if (context == null)

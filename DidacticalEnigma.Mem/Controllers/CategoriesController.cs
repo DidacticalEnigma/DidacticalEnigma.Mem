@@ -26,7 +26,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] AddCategoriesHandler addCategoriesHandler)
         {
             var result = await addCategoriesHandler.Add(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName,
                 request);
             return result.Unwrap(new AddCategoriesResult());
@@ -41,7 +41,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] DeleteCategoryHandler deleteCategoryHandler)
         {
             var result = await deleteCategoryHandler.Delete(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName,
                 categoryId);
             return result.Unwrap(new DeleteCategoryResult());
@@ -55,7 +55,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] QueryCategoriesHandler queryCategoriesHandler)
         {
             var result = await queryCategoriesHandler.Query(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName);
             return result.Unwrap();
         }

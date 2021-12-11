@@ -23,19 +23,20 @@ namespace DidacticalEnigma.Mem.Translation.Projects
             this.currentTimeProvider = currentTimeProvider;
         }
 
-        public async Task<Result<QueryProjectsResult, object>> Query(string? userId)
+        public async Task<Result<QueryProjectsResult, object>> Query(
+            string? userName)
         {
             var projectInfos = await this.dbContext.Projects
                 .Where(project =>
                     project.PublicallyReadable ||
-                    (project.OwnerId == userId
-                     || project.Contributors.Any(contributor => contributor.UserId == userId)))
+                    (project.Owner.UserName == userName
+                     || project.Contributors.Any(contributor => contributor.User.UserName == userName)))
                 .Select(project => new
                 {
                     ProjectName = project.Name,
-                    IsOwner = project.OwnerId == userId,
-                    CanContribute = project.OwnerId == userId ||
-                        project.Contributors.Any(contributor => contributor.UserId == userId)
+                    IsOwner = project.Owner.UserName == userName,
+                    CanContribute = project.Owner.UserName == userName ||
+                        project.Contributors.Any(contributor => contributor.User.UserName == userName)
                 })
                 .ToListAsync();
             

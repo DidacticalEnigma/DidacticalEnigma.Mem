@@ -4,6 +4,7 @@ using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace DidacticalEnigma.Mem.Translation.Projects
@@ -11,22 +12,22 @@ namespace DidacticalEnigma.Mem.Translation.Projects
     public class AddProjectHandler
     {
         private readonly MemContext dbContext;
-        private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
-        private readonly ICurrentTimeProvider currentTimeProvider;
+        private readonly UserManager<User> userManager;
 
         public AddProjectHandler(
             MemContext dbContext,
-            IMorphologicalAnalyzer<IpadicEntry> analyzer,
-            ICurrentTimeProvider currentTimeProvider)
+            UserManager<User> userManager)
         {
             this.dbContext = dbContext;
-            this.analyzer = analyzer;
-            this.currentTimeProvider = currentTimeProvider;
+            this.userManager = userManager;
         }
         
-        public async Task<Result<Unit, Unit>> Add(string? userId, string projectName)
+        public async Task<Result<Unit, Unit>> Add(
+            string? userName,
+            string projectName,
+            bool publicallyReadable = true)
         {
-            if (userId == null)
+            if (userName == null)
             {
                 return Result<Unit, Unit>.Failure(
                     HttpStatusCode.Forbidden,
@@ -44,7 +45,8 @@ namespace DidacticalEnigma.Mem.Translation.Projects
             project = new Project()
             {
                 Name = projectName,
-                OwnerId = userId
+                Owner = await this.userManager.FindByNameAsync(userName),
+                PublicallyReadable = publicallyReadable
             };
             this.dbContext.Projects.Add(project);
             

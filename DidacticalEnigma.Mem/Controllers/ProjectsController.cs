@@ -24,7 +24,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] AcceptInvitationHandler acceptInvitationHandler)
         {
             var result = await acceptInvitationHandler.Accept(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 acceptInvitationParams.ProjectName,
                 acceptInvitationParams.InvitingUserName);
             return result.Unwrap(new AcceptInvitationResult());
@@ -38,7 +38,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] RejectInvitationHandler rejectInvitationHandler)
         {
             var result = await rejectInvitationHandler.Reject(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 rejectInvitationParams.ProjectName,
                 rejectInvitationParams.InvitingUserName);
             return result.Unwrap(new RejectInvitationResult());
@@ -53,7 +53,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] SendInvitationHandler sendInvitationHandler)
         {
             var result = await sendInvitationHandler.Send(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName,
                 sendInvitationParams.InvitedUserName);
             return result.Unwrap(new SendInvitationResult());
@@ -66,7 +66,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] ListInvitationsHandler listInvitationsHandler)
         {
             var result = await listInvitationsHandler.Query(
-                Request.GetUserId());
+                Request.GetUserName());
             return result.Unwrap();
         }
         
@@ -75,11 +75,13 @@ namespace DidacticalEnigma.Mem.Controllers
         [Authorize("ApiRejectAnonymous")]
         public async Task<ActionResult<AddProjectResult>> AddProject(
             [FromQuery] string projectName,
+            [FromQuery] bool publicallyReadable,
             [FromServices] AddProjectHandler addProjectHandler)
         {
             var result = await addProjectHandler.Add(
-                Request.GetUserId(),
-                projectName);
+                Request.GetUserName(),
+                projectName,
+                publicallyReadable);
             return result.Unwrap(new AddProjectResult());
         }
         
@@ -91,7 +93,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] DeleteProjectHandler deleteProjectHandler)
         {
             var result = await deleteProjectHandler.Delete(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName);
             return result.Unwrap(new DeleteProjectResult());
         }
@@ -103,7 +105,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] ListProjectsHandler listProjectsHandler)
         {
             var result = await listProjectsHandler.Query(
-                Request.GetUserId());
+                Request.GetUserName());
             return result.Unwrap();
         }
     }

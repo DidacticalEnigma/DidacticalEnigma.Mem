@@ -25,14 +25,14 @@ namespace DidacticalEnigma.Mem.Translation.Translations
         }
         
         public async Task<Result<Unit, Unit>> Delete(
-            string? userId,
+            string? userName,
             string projectName,
             string correlationId)
         {
             var translation = await this.dbContext.TranslationPairs
                 .FirstOrDefaultAsync(t =>
-                    (t.Parent.OwnerId == userId
-                        || t.Parent.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    (t.Parent.Owner.UserName == userName
+                        || t.Parent.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     t.Parent.Name == projectName &&
                     t.CorrelationId == correlationId);
             

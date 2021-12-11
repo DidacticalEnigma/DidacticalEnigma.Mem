@@ -23,11 +23,11 @@ namespace DidacticalEnigma.Mem.Translation.Projects
         }
 
         public async Task<Result<Unit, Unit>> Send(
-            string? userId,
+            string? userName,
             string projectName,
             string invitedUserName)
         {
-            if (userId == null)
+            if (userName == null)
             {
                 return Result<Unit, Unit>.Failure(
                     HttpStatusCode.Forbidden,
@@ -40,11 +40,11 @@ namespace DidacticalEnigma.Mem.Translation.Projects
                 .Select(project => new
                 {
                     ProjectId = project.Id,
-                    IsOwner = project.OwnerId == userId,
+                    IsOwner = project.Owner.UserName == userName,
                     IsVisible =
                         project.PublicallyReadable ||
-                        project.OwnerId == userId ||
-                        project.Contributors.Any(contributor => contributor.UserId == userId)
+                        project.Owner.UserName == userName ||
+                        project.Contributors.Any(contributor => contributor.User.UserName == userName)
                 })
                 .FirstOrDefaultAsync();
 
@@ -64,7 +64,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
 
             this.dbContext.Invitations.Add(new ContributorInvitation()
             {
-                InvitingUserId = userId,
+                InvitingUser = await this.userManager.FindByNameAsync(userName),
                 ProjectId = projectInfo.ProjectId,
                 InvitedUser = await this.userManager.FindByNameAsync(invitedUserName)
             });

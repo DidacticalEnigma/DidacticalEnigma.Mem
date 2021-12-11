@@ -26,6 +26,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] AddTranslations addTranslations)
         {
             var result = await addTranslations.Add(
+                Request.GetUserName(),
                 projectName,
                 request.Translations,
                 request.AllowPartialAdd);
@@ -54,7 +55,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] QueryTranslationsHandler queryTranslationsHandler)
         {
             var result = await queryTranslationsHandler.Query(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName,
                 correlationId,
                 query,
@@ -73,7 +74,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] DeleteTranslationHandler deleteTranslationHandler)
         {
             var result = await deleteTranslationHandler.Delete(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName,
                 correlationId);
             return result.Unwrap(new DeleteTranslationResult());
@@ -89,7 +90,7 @@ namespace DidacticalEnigma.Mem.Controllers
             [FromServices] UpdateTranslationHandler updateTranslationHandler)
         {
             var result = await updateTranslationHandler.Update(
-                Request.GetUserId(),
+                Request.GetUserName(),
                 projectName,
                 correlationId,
                 request);

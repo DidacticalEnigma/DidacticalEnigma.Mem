@@ -7,6 +7,7 @@ using DidacticalEnigma.Core.Models.LanguageService;
 using DidacticalEnigma.Mem.DatabaseModels;
 using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation.IoModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -17,19 +18,22 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
         private readonly MemContext dbContext;
         private readonly IMorphologicalAnalyzer<IpadicEntry> analyzer;
         private readonly ICurrentTimeProvider currentTimeProvider;
-        
+        private readonly UserManager<User> userManager;
+
         public AddContextHandler(
             MemContext dbContext,
             IMorphologicalAnalyzer<IpadicEntry> analyzer,
-            ICurrentTimeProvider currentTimeProvider)
+            ICurrentTimeProvider currentTimeProvider,
+            UserManager<User> userManager)
         {
             this.dbContext = dbContext;
             this.analyzer = analyzer;
             this.currentTimeProvider = currentTimeProvider;
+            this.userManager = userManager;
         }
         
         public async Task<Result<Unit, Unit>> Add(
-            string? userId,
+            string? userName,
             Guid id,
             string correlationId,
             string projectName,
@@ -52,10 +56,12 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                     "request with such a guid exists");
             }
 
+            var user = await this.userManager.FindByNameAsync(userName);
+
             var project = await this.dbContext.Projects
                 .FirstOrDefaultAsync(project =>
-                    (project.OwnerId == userId
-                     || project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    (project.Owner.UserName == userName
+                     || project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     project.Name == projectName);
 
             if (project == null)
@@ -117,14 +123,18 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                         ""CorrelationId"",
                         ""Text"",
                         ""ContentObjectId"",
-                        ""MediaTypeId"")
+                        ""MediaTypeId"",
+                        ""CreatedById"",
+                        ""CreationTime"")
                     VALUES (
                         {id},
                         {project.Id},
                         {correlationId},
                         {text},
                         {contentObjectId},
-                        {mediaTypeModel?.Id});");
+                        {mediaTypeModel?.Id},
+                        {user.Id},
+                        {currentTimeProvider.GetCurrentTime()});");
 
                 await transaction.CommitAsync();
             }

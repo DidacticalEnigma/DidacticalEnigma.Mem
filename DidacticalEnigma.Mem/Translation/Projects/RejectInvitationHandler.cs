@@ -22,7 +22,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
         }
 
         public async Task<Result<Unit, Unit>> Reject(
-            string? userId,
+            string? userName,
             string projectName,
             string invitingUserName)
         {
@@ -30,7 +30,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
                 .FirstOrDefaultAsync(invitation =>
                     invitation.Project.Name == projectName &&
                     invitation.InvitingUser.UserName == invitingUserName &&
-                    invitation.InvitedUserId == userId);
+                    invitation.InvitedUser.UserName == userName);
 
             if (invitation == null)
             {

@@ -26,7 +26,7 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
         }
         
         public async Task<Result<QueryContextsResult, Unit>> Get(
-            string? userId,
+            string? userName,
             Guid? id,
             string? projectName,
             string? correlationId)
@@ -55,8 +55,8 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             if (correlationId != null && projectName != null)
             {
                 filteredContexts = filteredContexts.Where(context =>
-                    (context.Project.OwnerId == userId
-                     || context.Project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    (context.Project.Owner.UserName == userName
+                     || context.Project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     context.Project.Name == projectName &&
                     context.CorrelationId.StartsWith(correlationId));
             }

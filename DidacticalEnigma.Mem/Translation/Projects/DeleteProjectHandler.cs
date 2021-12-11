@@ -24,12 +24,15 @@ namespace DidacticalEnigma.Mem.Translation.Projects
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<Unit, Unit>> Delete(string? userId, string projectName)
+        public async Task<Result<Unit, Unit>> Delete(
+            string? userName,
+            string projectName)
         {
             var project = await this.dbContext.Projects
+                .Include(project => project.Owner)
                 .FirstOrDefaultAsync(project =>
-                    (project.OwnerId == userId
-                     || project.Contributors.Any(contributor => contributor.UserId == userId)) &&
+                    (project.Owner.UserName == userName
+                     || project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     project.Name == projectName);
 
             if (project == null)
@@ -39,7 +42,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
                     "project not found");
             }
 
-            if (project.OwnerId != userId)
+            if (project.Owner.UserName != userName)
             {
                 return Result<Unit, Unit>.Failure(
                     HttpStatusCode.Forbidden,

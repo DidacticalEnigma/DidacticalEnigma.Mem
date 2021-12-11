@@ -31,7 +31,7 @@ namespace DidacticalEnigma.Mem.Translation.Translations
         }
         
         public async Task<Result<QueryTranslationsResult, Unit>> Query(
-            string? userId,
+            string? userName,
             string? projectName,
             string? correlationIdStart,
             string? queryText,
@@ -50,7 +50,7 @@ namespace DidacticalEnigma.Mem.Translation.Translations
                 .OrderBy(translation => translation.CorrelationId)
                 .AsQueryable();
 
-            if (userId == null)
+            if (userName == null)
             {
                 translations = translations.Where(translation => translation.Parent.PublicallyReadable);
             }
@@ -58,8 +58,8 @@ namespace DidacticalEnigma.Mem.Translation.Translations
             {
                 translations = translations.Where(translation =>
                     translation.Parent.PublicallyReadable
-                    || translation.Parent.Owner.Id == userId
-                    || translation.Parent.Contributors.Any(contributor => contributor.UserId == userId));
+                    || translation.Parent.Owner.UserName == userName
+                    || translation.Parent.Contributors.Any(contributor => contributor.User.UserName == userName));
             }
             
             if(projectName != null)

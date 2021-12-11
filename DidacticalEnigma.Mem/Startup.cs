@@ -8,6 +8,7 @@ using DidacticalEnigma.Mem.Services;
 using DidacticalEnigma.Mem.Translation;
 using DidacticalEnigma.Mem.Translation.Categories;
 using DidacticalEnigma.Mem.Translation.Contexts;
+using DidacticalEnigma.Mem.Translation.IoModels;
 using DidacticalEnigma.Mem.Translation.Projects;
 using DidacticalEnigma.Mem.Translation.Translations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -142,6 +143,10 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<AddCategoriesHandler>();
             services.AddScoped<DeleteCategoryHandler>();
             services.AddScoped<ListProjectsHandler>();
+            services.AddScoped<ListInvitationsHandler>();
+            services.AddScoped<SendInvitationHandler>();
+            services.AddScoped<AcceptInvitationHandler>();
+            services.AddScoped<RejectInvitationHandler>();
             
             services.AddQuartz(options =>
             {

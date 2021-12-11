@@ -27,13 +27,15 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             this.currentTimeProvider = currentTimeProvider;
         }
         
-        public async Task<Result<FileResult, Unit>> Get(string? userId, Guid id)
+        public async Task<Result<FileResult, Unit>> Get(
+            string? userName,
+            Guid id)
         {
             var contextData = await this.dbContext.Contexts
                 .Where(context => 
                     context.Project.PublicallyReadable ||
-                    (context.Project.OwnerId == userId
-                     || context.Project.Contributors.Any(contributor => contributor.UserId == userId)))
+                    (context.Project.Owner.UserName == userName
+                     || context.Project.Contributors.Any(contributor => contributor.User.UserName == userName)))
                 .Select(context => new
                 {
                     Id = context.Id,

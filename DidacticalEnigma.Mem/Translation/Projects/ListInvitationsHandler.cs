@@ -21,11 +21,11 @@ namespace DidacticalEnigma.Mem.Translation.Projects
         }
 
         public async Task<Result<QueryInvitationsResult, Unit>> Query(
-            string? userId)
+            string? userName)
         {
             var invitationsReceived = (await this.dbContext.Invitations
                 .Where(invitation =>
-                    invitation.InvitedUserId == userId)
+                    invitation.InvitedUser.UserName == userName)
                 .Select(invitation => new
                 {
                     InvitingUser = invitation.InvitingUser.UserName,
@@ -42,7 +42,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
             
             var invitationsSent = (await this.dbContext.Invitations
                     .Where(invitation =>
-                        invitation.InvitingUserId == userId)
+                        invitation.InvitingUser.UserName == userName)
                     .Select(invitation => new
                     {
                         InvitedUser = invitation.InvitedUser.UserName,
