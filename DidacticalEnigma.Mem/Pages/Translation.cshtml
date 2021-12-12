@@ -6,33 +6,34 @@
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model TranslationModel
 @{
-    ViewData["Title"] = Model.TranslationTitle;
+    ViewData["Title"] = Model.PageTitle;
 }
 
-<h2>@Model.TranslationTitle</h2>
 @if (Model.Translation != null)
 {
     <div class="row">
         <div class="col-md-4">
             <section>
-                <p>@Model.Translation.Source</p>
-                
-                <p>@Model.Translation.Target</p>
-                
+                <h2><a asp-area="" asp-page="/Project" asp-route-project="@Model.Translation.ProjectName">@Model.ProjectTitle</a></h2>
+                @Model.Translation.CorrelationId
+                <p class="multiline">@Model.Translation.Source</p>
+
+                <p class="multiline">@Model.Translation.Target</p>
+
                 <p><i>Category: </i>@Model.Translation.Category</p>
-                
+
                 <ul>
                     @foreach (var note in Model.Translation.TranslationNotes?.Normal ?? Array.Empty<IoNormalNote>())
                     {
                         <li>@note.SideText : @note.Text</li>
                     }
                 </ul>
-                
+
                 <ul>
-                @foreach (var note in Model.Translation.TranslationNotes?.Gloss ?? Array.Empty<IoGlossNote>())
-                {
-                    <li>@note.Foreign : @note.Explanation</li>
-                }
+                    @foreach (var note in Model.Translation.TranslationNotes?.Gloss ?? Array.Empty<IoGlossNote>())
+                    {
+                        <li>@note.Foreign : @note.Explanation</li>
+                    }
                 </ul>
             </section>
         </div>
@@ -46,4 +47,8 @@
             </section>
         </div>
     </div>
+}
+else
+{
+    <h2>Translation not found</h2>
 }

@@ -26,8 +26,10 @@ namespace DidacticalEnigma.Mem.Pages
             this.getContextsHandler = getContextsHandler;
         }
 
-        public string TranslationTitle => Translation?.CorrelationId != null
-            ? Translation.CorrelationId
+        public string PageTitle => string.Join(" ", new [] { ProjectTitle, Context?.Text }.Where(x => x != null));
+
+        public string ProjectTitle => Translation != null
+            ? Translation.ProjectName
             : "Translation not found";
         
         public QueryTranslationResult? Translation { get; private set; }

@@ -1,0 +1,28 @@
+﻿@page
+@using DidacticalEnigma.Mem.DatabaseModels
+@using DidacticalEnigma.Mem.Translation.IoModels
+@using Microsoft.AspNetCore.Identity
+@model TranslationsModel
+@{
+    ViewData["Title"] = $"Search for '{Model.SearchText}'";
+}
+
+<div>
+    <div class="row">
+        <div class="col-md-5">
+            <section>
+                <ul>
+                    @foreach (var line in Model.Translations)
+                    {
+                        <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@line.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
+                        <li class="multiline">@line.Target</li>
+                    }
+                </ul>
+                @if (Model.PaginationToken != null)
+                {
+                    <a asp-area="" asp-page="/Translations" asp-route-search="@Model.SearchText" asp-route-paginationToken="@Model.PaginationToken">More</a>
+                }
+            </section>
+        </div>
+    </div>
+</div>

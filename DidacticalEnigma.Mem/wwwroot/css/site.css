@@ -22,3 +22,7 @@ footer {
   bottom: 0;
   width: 100%;
 }
+
+.multiline {
+  white-space: pre-line;
+}

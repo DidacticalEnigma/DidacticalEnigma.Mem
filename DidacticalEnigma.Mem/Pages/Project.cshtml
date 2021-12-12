@@ -31,8 +31,8 @@
                     <ul>
                         @foreach (var line in Model.Project.RecentAddedLines)
                         {
-                            <li><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
-                            <li>@line.Target</li>
+                            <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
+                            <li class="multiline">@line.Target</li>
                         }
                     </ul>
 
@@ -42,7 +42,7 @@
                     <ul>
                         @foreach (var line in Model.Project.UntranslatedLines)
                         {
-                            <li><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
+                            <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
                         }
                     </ul>
                     }
@@ -64,8 +64,8 @@
                     <ul>
                     @foreach (var line in Model.Translations)
                     {
-                        <li><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
-                        <li>@line.Target</li>
+                        <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
+                        <li class="multiline">@line.Target</li>
                     }
                     </ul>
                 </section>
