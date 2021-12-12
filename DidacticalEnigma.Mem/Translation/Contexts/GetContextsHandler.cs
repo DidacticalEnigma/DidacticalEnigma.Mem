@@ -66,8 +66,9 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             if (correlationId != null && projectName != null)
             {
                 filteredContexts = filteredContexts.Where(context =>
-                    (context.Project.Owner.UserName == userName
-                     || context.Project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
+                    (context.Project.PublicallyReadable ||
+                     context.Project.Owner.UserName == userName ||
+                     context.Project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     context.Project.Name == projectName &&
                     possibleCorrelationIds.Contains(context.CorrelationId));
             }

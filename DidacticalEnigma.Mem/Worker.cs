@@ -23,21 +23,54 @@ namespace DidacticalEnigma.Mem
 
             var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
 
-            if (await manager.FindByClientIdAsync("balosar-blazor-client") is null)
+            if (await manager.FindByClientIdAsync("DidacticalEnigma") is null)
             {
                 await manager.CreateAsync(new OpenIddictApplicationDescriptor
                 {
-                    ClientId = "balosar-blazor-client",
-                    ConsentType = ConsentTypes.Implicit,
-                    DisplayName = "Blazor client application",
+                    ClientId = "DidacticalEnigma",
+                    ConsentType = ConsentTypes.Explicit,
+                    DisplayName = "Didactical Enigma",
                     Type = ClientTypes.Public,
+                    // set of 16 possible addresses to check
+                    // workaround for not being able to set a wildcard like
+                    // https://www.rfc-editor.org/rfc/rfc8252.txt describes
                     PostLogoutRedirectUris =
                     {
-                        new Uri("http://localhost:50000/")
+                        new Uri("http://127.0.0.1:62925/"),
+                        new Uri("http://127.0.0.1:64186/"),
+                        new Uri("http://127.0.0.1:57226/"),
+                        new Uri("http://127.0.0.1:51503/"),
+                        new Uri("http://127.0.0.1:64709/"),
+                        new Uri("http://127.0.0.1:57190/"),
+                        new Uri("http://127.0.0.1:63336/"),
+                        new Uri("http://127.0.0.1:58410/"),
+                        new Uri("http://127.0.0.1:61381/"),
+                        new Uri("http://127.0.0.1:60796/"),
+                        new Uri("http://127.0.0.1:53803/"),
+                        new Uri("http://127.0.0.1:62017/"),
+                        new Uri("http://127.0.0.1:61715/"),
+                        new Uri("http://127.0.0.1:53264/"),
+                        new Uri("http://127.0.0.1:58730/"),
+                        new Uri("http://127.0.0.1:65242/"),
                     },
                     RedirectUris =
                     {
-                        new Uri("http://localhost:50000/")
+                        new Uri("http://127.0.0.1:62925/"),
+                        new Uri("http://127.0.0.1:64186/"),
+                        new Uri("http://127.0.0.1:57226/"),
+                        new Uri("http://127.0.0.1:51503/"),
+                        new Uri("http://127.0.0.1:64709/"),
+                        new Uri("http://127.0.0.1:57190/"),
+                        new Uri("http://127.0.0.1:63336/"),
+                        new Uri("http://127.0.0.1:58410/"),
+                        new Uri("http://127.0.0.1:61381/"),
+                        new Uri("http://127.0.0.1:60796/"),
+                        new Uri("http://127.0.0.1:53803/"),
+                        new Uri("http://127.0.0.1:62017/"),
+                        new Uri("http://127.0.0.1:61715/"),
+                        new Uri("http://127.0.0.1:53264/"),
+                        new Uri("http://127.0.0.1:58730/"),
+                        new Uri("http://127.0.0.1:65242/"),
                     },
                     Permissions =
                     {

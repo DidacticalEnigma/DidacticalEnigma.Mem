@@ -23,6 +23,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using NMeCab;
 using OpenIddict.Abstractions;
+using OpenIddict.Server;
 using OpenIddict.Validation.AspNetCore;
 using Quartz;
 using Swashbuckle.AspNetCore.Filters;
@@ -226,14 +227,13 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                     options
                         .AddDevelopmentEncryptionCertificate()
                         .AddDevelopmentSigningCertificate();
-                    
+
                     options
                         .UseAspNetCore()
                         .EnableAuthorizationEndpointPassthrough()
                         .EnableLogoutEndpointPassthrough()
                         .EnableStatusCodePagesIntegration()
-                        .EnableTokenEndpointPassthrough()
-                        .DisableTransportSecurityRequirement();
+                        .EnableTokenEndpointPassthrough();
                 })
                 .AddValidation(options =>
                 {

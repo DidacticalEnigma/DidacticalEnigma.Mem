@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Attributes;
 using DidacticalEnigma.Mem.DatabaseModels;
+using DidacticalEnigma.Mem.Pages;
 using DidacticalEnigma.Mem.ViewModels.Authorization;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -13,7 +14,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
+using Newtonsoft.Json;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -182,7 +185,15 @@ namespace Balosar.Server.Controllers
 
                 // In every other case, render the consent form.
                 default:
-                    throw new NotImplementedException();
+                    IEnumerable<KeyValuePair<string, StringValues>> values = HttpContext.Request.HasFormContentType
+                        ? HttpContext.Request.Form
+                        : HttpContext.Request.Query;
+                    return View("/Pages/AuthorizeApplication.cshtml", new AuthorizeApplicationModel()
+                    {
+                        ApplicationName = await _applicationManager.GetDisplayNameAsync(application),
+                        Scope = request.Scope,
+                        Params = values
+                    });
             }
         }
 
