@@ -11,6 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="6.0.1" />
         <PackageReference Include="DidacticalEnigma.Core" Version="0.9.7.2" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.HttpOverrides" Version="2.2.0" />

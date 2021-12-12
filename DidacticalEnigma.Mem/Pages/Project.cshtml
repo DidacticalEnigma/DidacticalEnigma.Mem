@@ -1,0 +1,75 @@
+﻿@page
+@using DidacticalEnigma.Mem.DatabaseModels
+@using DidacticalEnigma.Mem.Translation.IoModels
+@using Microsoft.AspNetCore.Identity
+@model ProjectModel
+@{
+    ViewData["Title"] = Model.ProjectTitle;
+}
+
+<div>
+    <h2>@Model.ProjectTitle</h2>
+    @if (Model.Project != null)
+    {
+        <div class="row">
+            <div class="col-md-5">
+                <section>
+                    <i>Project owner: @Model.Project.Owner</i><br/>
+                    @{
+                        var contributors = Model.Project.Contributors ?? Array.Empty<string>();
+                        var untranslatedLines = Model.Project.UntranslatedLines;
+                        var hasUntranslatedLines = untranslatedLines.Count != 0;
+                        var hasOtherContributors = contributors.Count != 0;
+                        if (hasOtherContributors)
+                        {
+                            <i>Contributors: @string.Join(", ", contributors)</i>
+                        }
+                    }
+
+                    <p>Untranslated lines remaining: @Model.Project.TotalUntranslatedLines</p>
+                                                                              
+                    <ul>
+                        @foreach (var line in Model.Project.RecentAddedLines)
+                        {
+                            <li><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
+                            <li>@line.Target</li>
+                        }
+                    </ul>
+
+                    @if (hasUntranslatedLines)
+                    {
+                    <p>Untranslated lines:</p>
+                    <ul>
+                        @foreach (var line in Model.Project.UntranslatedLines)
+                        {
+                            <li><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
+                        }
+                    </ul>
+                    }
+                </section>
+            </div>
+            <div class="col-md-5 col-md-offset-2">
+                <section>
+                    <form id="search-form" method="get">
+                        <input type="hidden" name="project" value="@Model.Project.ProjectName"/>
+                        <div class="form-floating">
+                            <input id="search-box" name="search" class="form-control" aria-required="true" value="@Model.SearchText"/>
+                            <label for="search-box" class="form-label">Query text</label>
+                        </div>
+                        <div>
+                            <button type="submit" class="w-100 btn btn-lg btn-primary">Search</button>
+                        </div>
+                    </form>
+                    
+                    <ul>
+                    @foreach (var line in Model.Translations)
+                    {
+                        <li><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
+                        <li>@line.Target</li>
+                    }
+                    </ul>
+                </section>
+            </div>
+        </div>
+    }
+</div>

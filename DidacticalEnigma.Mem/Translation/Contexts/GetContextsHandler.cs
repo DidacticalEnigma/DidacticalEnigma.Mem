@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -51,6 +52,16 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
             {
                 filteredContexts = filteredContexts.Where(context => context.Id == id);
             }
+
+            var possibleCorrelationIds = new List<string>();
+            var currentCorrelationId = correlationId!;
+            int lastIndex = currentCorrelationId.Length;
+            do
+            {
+                currentCorrelationId = currentCorrelationId.Substring(0, lastIndex);
+                possibleCorrelationIds.Add(currentCorrelationId);
+                lastIndex = currentCorrelationId.LastIndexOf('/');
+            } while (lastIndex != -1);
             
             if (correlationId != null && projectName != null)
             {
@@ -58,10 +69,11 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                     (context.Project.Owner.UserName == userName
                      || context.Project.Contributors.Any(contributor => contributor.User.UserName == userName)) &&
                     context.Project.Name == projectName &&
-                    context.CorrelationId.StartsWith(correlationId));
+                    possibleCorrelationIds.Contains(context.CorrelationId));
             }
             
             var contexts = (await filteredContexts
+                    .OrderByDescending(context => context.CorrelationId)
                     .Select(context => new
                     {
                         Id = context.Id,

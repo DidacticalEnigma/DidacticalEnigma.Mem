@@ -7,6 +7,8 @@ using DidacticalEnigma.Mem.Translation.Contexts;
 using DidacticalEnigma.Mem.Translation.IoModels;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -59,10 +61,14 @@ namespace DidacticalEnigma.Mem.Controllers
         [Authorize("ApiAllowAnonymous")]
         public async Task<ActionResult> GetContextData(
             [FromQuery] Guid id,
+            [FromQuery] DateTimeOffset? ifModifiedSinceOverride,
             [FromServices] GetContextDataHandler getContextDataHandler)
         {
+            var requestDict = new RequestHeaders(Request.Headers);
+            
             var result = await getContextDataHandler.Get(
                 Request.GetUserName(),
+                ifModifiedSinceOverride ?? requestDict.IfModifiedSince,
                 id);
             return result.UnwrapFile();
         }

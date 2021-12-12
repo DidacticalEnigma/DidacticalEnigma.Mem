@@ -1,23 +1,36 @@
 ﻿@page
+@using DidacticalEnigma.Mem.DatabaseModels
+@using Microsoft.AspNetCore.Identity
 @model IndexModel
 @{
     ViewData["Title"] = "Home page";
 }
 
-<div class="text-center">
-    <p>List of projects:</p>
-    <ul>
-        @foreach (var project in Model.Projects)
-        {
-            <li><i>@project.Name</i> by <i>@project.Owner</i></li>
-        }
-    </ul>
-    
-    <p>List of invitations:</p>
-    <ul>
-        @foreach (var invitation in Model.Invitations)
-        {
-            <li><i>@invitation.InvitingUser</i> invites you to collaborate on the project <i>@invitation.ProjectName</i></li>
-        }
-    </ul>
-</div>
+@inject SignInManager<User> SignInManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <div>
+        <p>List of projects:</p>
+        <ul>
+            @foreach (var project in Model.Projects)
+            {
+                <li><a asp-area="" asp-route-project="@project.Name" asp-page="/Project">@project.Name</a> by <i>@project.Owner</i></li>
+            }
+        </ul>
+
+        <p>List of invitations:</p>
+        <ul>
+            @foreach (var invitation in Model.Invitations)
+            {
+                <li><i>@invitation.InvitingUser</i> invites you to collaborate on the project <i>@invitation.ProjectName</i></li>
+            }
+        </ul>
+    </div>
+}
+else
+{
+    <div class="text-center">
+        <h2>Welcome to Didactical Enigma</h2>
+    </div>
+}

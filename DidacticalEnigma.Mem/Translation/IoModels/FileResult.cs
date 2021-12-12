@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace DidacticalEnigma.Mem.Translation.IoModels
@@ -11,5 +12,7 @@ namespace DidacticalEnigma.Mem.Translation.IoModels
         
         
         public string FileName { get; set; }
+        
+        public DateTime LastModified { get; set; }
     }
 }

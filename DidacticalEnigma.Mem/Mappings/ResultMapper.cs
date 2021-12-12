@@ -41,7 +41,11 @@ namespace DidacticalEnigma.Mem.Mappings
             if (result.Error == null)
             {
                 var value = result.Value!;
-                return new FileStreamResult(value.Content, value.MediaType) { FileDownloadName = value.FileName };
+                return new FileStreamResult(value.Content, value.MediaType)
+                {
+                    FileDownloadName = value.FileName,
+                    LastModified = value.LastModified
+                };
             }
             else
             {

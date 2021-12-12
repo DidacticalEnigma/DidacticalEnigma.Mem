@@ -1,0 +1,49 @@
+﻿@page
+@using DidacticalEnigma.Mem.DatabaseModels
+@using DidacticalEnigma.Mem.Extensions
+@using DidacticalEnigma.Mem.Translation.IoModels
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model TranslationModel
+@{
+    ViewData["Title"] = Model.TranslationTitle;
+}
+
+<h2>@Model.TranslationTitle</h2>
+@if (Model.Translation != null)
+{
+    <div class="row">
+        <div class="col-md-4">
+            <section>
+                <p>@Model.Translation.Source</p>
+                
+                <p>@Model.Translation.Target</p>
+                
+                <p><i>Category: </i>@Model.Translation.Category</p>
+                
+                <ul>
+                    @foreach (var note in Model.Translation.TranslationNotes?.Normal ?? Array.Empty<IoNormalNote>())
+                    {
+                        <li>@note.SideText : @note.Text</li>
+                    }
+                </ul>
+                
+                <ul>
+                @foreach (var note in Model.Translation.TranslationNotes?.Gloss ?? Array.Empty<IoGlossNote>())
+                {
+                    <li>@note.Foreign : @note.Explanation</li>
+                }
+                </ul>
+            </section>
+        </div>
+        <div class="col-md-6 col-md-offset-2">
+            <section>
+                @if (Model.Context?.HasData == true &&
+                     MimeExtensions.IsImage(Model.Context?.MediaType))
+                {
+                    <img class="img-fluid" alt="Image Context for @Model.Context?.CorrelationId" src="@Model.ContextDataLink"/>
+                }
+            </section>
+        </div>
+    </div>
+}

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text.Json.Serialization;
 using DidacticalEnigma.Core.Models.LanguageService;
@@ -87,6 +88,10 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             var quartzConfigurationSection = Configuration.GetSection("QuartzConfiguration");
             services.Configure<QuartzConfiguration>(quartzConfigurationSection);
             var quartzConfiguration = authConfigurationSection.Get<QuartzConfiguration>();
+            
+            var githubLoginProviderConfigurationSection = Configuration.GetSection("GithubLoginProviderConfiguration");
+            services.Configure<GithubLoginProviderConfiguration>(githubLoginProviderConfigurationSection);
+            var githubLoginProviderConfiguration = authConfigurationSection.Get<GithubLoginProviderConfiguration>();
 
             services.AddSingleton<IMorphologicalAnalyzer<IpadicEntry>>(provider => new MeCabIpadic(new MeCabParam()
             {
@@ -103,13 +108,26 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                 options.UseOpenIddict();
             });
 
-            services
+            var authBuilder = services
                 .AddAuthentication(options =>
                 {
                     options.DefaultScheme = IdentityConstants.ApplicationScheme;
                     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+                });
 
-                })
+            if (githubLoginProviderConfiguration?.ClientId != null &&
+                githubLoginProviderConfiguration?.ClientSecret != null)
+            {
+                authBuilder = authBuilder
+                    .AddGitHub(options =>
+                    {
+                        options.ClientId = githubLoginProviderConfiguration.ClientId;
+                        options.ClientSecret = githubLoginProviderConfiguration.ClientSecret;
+                        options.SignInScheme = IdentityConstants.ExternalScheme;
+                    });
+            }
+
+            authBuilder
                 .AddIdentityCookies(o => { });
 
             services.AddIdentityCore<User>(options =>
@@ -148,6 +166,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<AcceptInvitationHandler>();
             services.AddScoped<RejectInvitationHandler>();
             services.AddScoped<CancelInvitationHandler>();
+            services.AddScoped<QueryProjectShowcaseHandler>();
 
             if (quartzConfiguration.EnableQuartz)
             {

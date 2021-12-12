@@ -29,6 +29,7 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
         
         public async Task<Result<FileResult, Unit>> Get(
             string? userName,
+            DateTimeOffset? ifModifiedSince,
             Guid id)
         {
             var contextData = await this.dbContext.Contexts
@@ -42,6 +43,7 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                     ContentObjectId = context.ContentObjectId,
                     MediaType = context.MediaType != null ? context.MediaType.MediaType : null,
                     Extension = context.MediaType != null ? context.MediaType.Extension : null,
+                    LastModified = context.CreationTime
                 })
                 .FirstOrDefaultAsync(contextData => contextData.Id == id);
             
@@ -57,6 +59,13 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                 return Result<FileResult, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "context has no associated binary data");
+            }
+
+            if (ifModifiedSince != null && contextData.LastModified < ifModifiedSince)
+            {
+                return Result<FileResult, Unit>.Failure(
+                    HttpStatusCode.NotModified,
+                    "not modified");
             }
             
             await this.dbContext.Database.OpenConnectionAsync();
@@ -75,7 +84,8 @@ namespace DidacticalEnigma.Mem.Translation.Contexts
                     await lobManager.OpenReadAsync(contextData.ContentObjectId.Value),
                     transaction),
                 FileName = $"{contextData.Id}.{contextData.Extension}",
-                MediaType = contextData.MediaType
+                MediaType = contextData.MediaType,
+                LastModified = contextData.LastModified
             });
         }
     }
