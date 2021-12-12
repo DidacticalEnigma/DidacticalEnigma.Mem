@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -30,57 +31,67 @@ namespace DidacticalEnigma.Mem.Translation.Projects
             string? userName,
             string projectName)
         {
-            var projectShowcase = await this.dbContext.Projects
+            var projectId = await this.dbContext.Projects
                 .Where(p =>
                     p.Name == projectName &&
                     (p.PublicallyReadable ||
                     p.Owner.UserName == userName ||
                     p.Contributors.Any(contributor => contributor.User.UserName == userName)))
-                .Select(p => new
-                {
-                    ProjectName = p.Name,
-                    Owner = 
-                        p.Owner.UserName == userName ||
-                        p.Contributors.Any(contributor => contributor.User.UserName == userName)
-                        ? p.Owner.UserName
-                        : null,
-                    Contributors =
-                        p.Owner.UserName == userName ||
-                        p.Contributors.Any(contributor => contributor.User.UserName == userName)
-                        ? p.Contributors.Select(contributor => contributor.User.UserName)
-                        : null,
-                    TotalUntranslatedLines =
-                        p.Translations.Count(t => t.Target == null),
-                    RecentAddedLines =
-                        p.Translations
-                            .OrderByDescending(t => t.ModificationTime)
-                            .Where(t => t.Target != null)
-                            .Take(10)
-                            .Select(t => new {t.Source, t.Target, t.CorrelationId}),
-                    UntranslatedLines =
-                        p.Translations
-                        .OrderByDescending(t => t.ModificationTime)
-                        .Where(t => t.Target == null)
-                        .Take(10)
-                        .Select(t => new {t.Source, t.CorrelationId})
-
-                })
+                .Select(p => (int?)p.Id)
                 .FirstOrDefaultAsync();
-
-            if (projectShowcase == null)
+            if (projectId == null)
             {
                 return Result<QueryProjectShowcaseResult, Unit>.Failure(
                     HttpStatusCode.NotFound,
                     "project not found");
             }
+
+            var isContributor = await this.dbContext.Projects
+                .AnyAsync(p =>
+                    p.Name == projectName &&
+                    p.Owner.UserName == userName ||
+                    p.Contributors.Any(contributor => contributor.User.UserName == userName));
+
+            string? owner = null;
+            IReadOnlyCollection<string>? contributors = null;
+            if (isContributor)
+            {
+                owner = await this.dbContext.Projects
+                    .Where(project => project.Id == projectId)
+                    .Select(project => project.Owner.UserName).FirstOrDefaultAsync();
+
+                contributors = await this.dbContext.Users
+                    .Where(user => user.ContributedProjects.Any(p => p.ProjectId == projectId))
+                    .Select(user => user.UserName)
+                    .ToListAsync();
+            }
+
+            int totalUntranslatedLines = await this.dbContext.TranslationPairs
+                .CountAsync(translation => translation.ParentId == projectId && translation.Target == null);
+
+            var recentLines = await this.dbContext.TranslationPairs
+                .Where(t => t.ParentId == projectId)
+                .OrderByDescending(t => t.ModificationTime)
+                .Where(t => t.Target != null)
+                .Take(10)
+                .Select(t => new { t.Source, t.Target, t.CorrelationId })
+                .ToListAsync();
             
+            var untranslatedLines = await this.dbContext.TranslationPairs
+                .Where(t => t.ParentId == projectId)
+                .OrderByDescending(t => t.ModificationTime)
+                .Where(t => t.Target == null)
+                .Take(10)
+                .Select(t => new {t.Source, t.CorrelationId})
+                .ToListAsync();
+
             return Result<QueryProjectShowcaseResult, Unit>.Ok(new QueryProjectShowcaseResult()
             {
-                ProjectName = projectShowcase.ProjectName,
-                Owner = projectShowcase.Owner,
-                Contributors = projectShowcase.Contributors?.ToList(),
-                TotalUntranslatedLines = projectShowcase.TotalUntranslatedLines,
-                RecentAddedLines = projectShowcase.RecentAddedLines
+                ProjectName = projectName,
+                Owner = owner,
+                Contributors = contributors,
+                TotalUntranslatedLines = totalUntranslatedLines,
+                RecentAddedLines = recentLines
                     .Select(line => new QueryProjectShowcaseTranslationResult()
                     {
                         Source = line.Source,
@@ -88,7 +99,7 @@ namespace DidacticalEnigma.Mem.Translation.Projects
                         CorrelationId = line.CorrelationId
                     })
                     .ToList(),
-                UntranslatedLines = projectShowcase.UntranslatedLines
+                UntranslatedLines = untranslatedLines
                     .Select(line => new QueryProjectShowcaseTranslationResult()
                     {
                         Source = line.Source,
