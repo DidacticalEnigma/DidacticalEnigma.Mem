@@ -188,7 +188,7 @@ namespace Balosar.Server.Controllers
                     IEnumerable<KeyValuePair<string, StringValues>> values = HttpContext.Request.HasFormContentType
                         ? HttpContext.Request.Form
                         : HttpContext.Request.Query;
-                    return View("/Pages/AuthorizeApplication.cshtml", new AuthorizeApplicationModel()
+                    return View("/Pages/_AuthorizeApplication.cshtml", new AuthorizeApplicationModel()
                     {
                         ApplicationName = await _applicationManager.GetDisplayNameAsync(application),
                         Scope = request.Scope,

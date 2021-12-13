@@ -1,5 +1,6 @@
 ﻿@page
 @using DidacticalEnigma.Mem.DatabaseModels
+@using DidacticalEnigma.Mem.Extensions
 @using DidacticalEnigma.Mem.Translation.IoModels
 @using Microsoft.AspNetCore.Identity
 @model ProjectModel
@@ -14,7 +15,11 @@
         <div class="row">
             <div class="col-md-5">
                 <section>
-                    <i>Project owner: @Model.Project.Owner</i><br/>
+                    @if (Model.IsContributor)
+                    {
+                        <i>Project owner: @Model.Project.Owner</i>
+                        <br/>
+                    }
                     @{
                         var contributors = Model.Project.Contributors ?? Array.Empty<string>();
                         var untranslatedLines = Model.Project.UntranslatedLines;
@@ -27,24 +32,32 @@
                     }
 
                     <p>Untranslated lines remaining: @Model.Project.TotalUntranslatedLines</p>
-                                                                              
-                    <ul>
-                        @foreach (var line in Model.Project.RecentAddedLines)
-                        {
-                            <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
-                            <li class="multiline">@line.Target</li>
-                        }
-                    </ul>
+
+                    @await Html.PartialAsync("Shared/_TranslationsBox", Model.RecentlyAdded)
 
                     @if (hasUntranslatedLines)
                     {
-                    <p>Untranslated lines:</p>
-                    <ul>
-                        @foreach (var line in Model.Project.UntranslatedLines)
-                        {
-                            <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
-                        }
-                    </ul>
+                        <p>Untranslated lines:</p>
+                        @await Html.PartialAsync("Shared/_TranslationsBox", Model.Untranslated)
+                    }
+                    @if (Model.Project.Owner == Request.GetUserName())
+                    {
+                        <section>
+                            <form id="contributor-invitation" method="post">
+                                <input type="hidden" name="action" value="invitation"/>
+                                <input type="hidden" name="project" value="@Model.Project.ProjectName"/>
+                                <input type="hidden" name="search" value="@Model.SearchText"/>
+                                <div class="form-floating">
+                                    <input id="search-box" name="invited" class="form-control" aria-required="true"/>
+                                    <label for="search-box" class="form-label">User to invite</label>
+                                    <span class="text-danger">@Model.InviteError</span>
+                                    <span class="text-success">@Model.InviteMessage</span>
+                                </div>
+                                <div>
+                                    <button type="submit" class="w-100 btn btn-lg btn-primary">Send an invitation</button>
+                                </div>
+                            </form>
+                        </section>
                     }
                 </section>
             </div>
@@ -61,13 +74,7 @@
                         </div>
                     </form>
                     
-                    <ul>
-                    @foreach (var line in Model.Translations)
-                    {
-                        <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@Model.Project.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
-                        <li class="multiline">@line.Target</li>
-                    }
-                    </ul>
+                    @await Html.PartialAsync("Shared/_TranslationsBox", Model.Translations)
                 </section>
             </div>
         </div>

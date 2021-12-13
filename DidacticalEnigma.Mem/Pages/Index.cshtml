@@ -1,5 +1,6 @@
 ﻿@page
 @using DidacticalEnigma.Mem.DatabaseModels
+@using DidacticalEnigma.Mem.Pages.Shared
 @using Microsoft.AspNetCore.Identity
 @model IndexModel
 @{
@@ -23,7 +24,11 @@
         <ul>
             @foreach (var invitation in Model.Invitations)
             {
-                <li><i>@invitation.InvitingUser</i> invites you to collaborate on the project <i>@invitation.ProjectName</i></li>
+                @await Html.PartialAsync("Shared/_InviteBox", new InviteBoxModel()
+                {
+                    Project = invitation.ProjectName,
+                    User = invitation.InvitingUser
+                })
             }
         </ul>
     </div>

@@ -11,13 +11,7 @@
     <div class="row">
         <div class="col-md-5">
             <section>
-                <ul>
-                    @foreach (var line in Model.Translations)
-                    {
-                        <li class="multiline"><b><a asp-area="" asp-page="Translation" asp-route-project="@line.ProjectName" asp-route-translation="@line.CorrelationId">@line.Source</a></b></li>
-                        <li class="multiline">@line.Target</li>
-                    }
-                </ul>
+                @await Html.PartialAsync("Shared/_TranslationsBox", Model.Translations)
                 @if (Model.PaginationToken != null)
                 {
                     <a asp-area="" asp-page="/Translations" asp-route-search="@Model.SearchText" asp-route-paginationToken="@Model.PaginationToken">More</a>

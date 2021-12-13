@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DidacticalEnigma.Core.Models.LanguageService;
+using DidacticalEnigma.Mem.Models;
 using Utility.Utils;
 
 namespace DidacticalEnigma.Mem.Extensions
@@ -51,6 +53,39 @@ namespace DidacticalEnigma.Mem.Extensions
                 .Append(highlighter)
                 .Concat(haystackStrings.Skip(start + values[start]));
             return (string.Concat(strings), highlighter);
+        }
+
+        public static IEnumerable<Tag> CreateTags(string text, string? highlighter)
+        {
+            if (highlighter == null)
+            {
+                yield return Tag.CreateText(text);
+                yield break;
+            }
+
+            var newlines = new[] { "\n", "\r", "\r\n" };
+            
+            bool isHighlighted = false;
+            foreach (var part in text.Split(highlighter))
+            {
+                if (isHighlighted)
+                {
+                    yield return Tag.CreateHighlighted(part);
+                }
+                else
+                {
+                    var tags = part
+                        .Split(newlines, StringSplitOptions.None)
+                        .Select(p => Tag.CreateText(p))
+                        .Intersperse(Tag.CreateNewline());
+                    foreach (var tag in tags)
+                    {
+                        yield return tag;
+                    }
+                }
+
+                isHighlighted = !isHighlighted;
+            }
         }
 
         private static bool IsNotStopWord(IpadicEntry entry)

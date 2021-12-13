@@ -1,0 +1,33 @@
+﻿@using DidacticalEnigma.Mem.Extensions
+@using DidacticalEnigma.Mem.Models
+@model IEnumerable<TranslationEntry>
+
+<div class="list-group">
+    @foreach (var line in Model ?? Array.Empty<TranslationEntry>())
+    {
+        <a class="list-group-item list-group-item-action d-flex gap-3 py-3" asp-area="" asp-page="Translation" asp-route-project="@line.Project" asp-route-translation="@line.CorrelationId">
+            <div>
+                <h6 class="mb-0">
+                    @foreach (var part in AnalyzerExtensions.CreateTags(line.Source, line.Highlight))
+                    {
+                        switch (part.Type)
+                        {
+                            case Tag.TagType.Text:
+                                <text>@part.Text</text>
+                                break;
+                            case Tag.TagType.Highlighted:
+                                <text><b>@part.Text</b></text>
+                                break;
+                            case Tag.TagType.Newline:
+                                <text><br/></text>
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                    }
+                </h6>
+                <p class="mb-0 opacity-75">@line.Target</p>
+            </div>
+        </a>
+    }
+</div>

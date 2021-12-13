@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using DidacticalEnigma.Mem.Extensions;
+using DidacticalEnigma.Mem.Models;
 using DidacticalEnigma.Mem.Translation.IoModels;
 using DidacticalEnigma.Mem.Translation.Projects;
 using DidacticalEnigma.Mem.Translation.Translations;
@@ -35,16 +36,26 @@ namespace DidacticalEnigma.Mem.Pages
         
         public string SearchText { get; private set; }
         
+        public string? InviteMessage { get; private set; }
+        
+        public string? InviteError { get; private set; }
+        
+        public IEnumerable<TranslationEntry> RecentlyAdded { get; private set; }
+
+        public IEnumerable<TranslationEntry> Untranslated { get; private set; }
+        
         public QueryProjectShowcaseResult? Project { get; private set; }
 
-        public IEnumerable<QueryTranslationResult> Translations { get; private set; } =
-            Array.Empty<QueryTranslationResult>();
+        public IEnumerable<TranslationEntry> Translations { get; private set; } =
+            Array.Empty<TranslationEntry>();
         
         public bool IsContributor { get; private set; }
 
         public async Task OnGetAsync(
             string project,
-            string? search)
+            string? search,
+            string? inviteMessage,
+            string? inviteError)
         {
             var userName = this.Request.GetUserName();
             
@@ -56,6 +67,28 @@ namespace DidacticalEnigma.Mem.Pages
             IsContributor = p?.Owner != null;
             Project = p;
             SearchText = search ?? "";
+            InviteMessage = inviteMessage;
+            this.InviteError = inviteError;
+
+            this.Untranslated = p?.UntranslatedLines
+                .Select(t => new TranslationEntry()
+                {
+                    Project = project,
+                    CorrelationId = t.CorrelationId,
+                    Source = t.Source,
+                    Target = t.Target,
+                    Highlight = null
+                }) ?? Array.Empty<TranslationEntry>();
+            
+            this.RecentlyAdded = p?.RecentAddedLines
+                .Select(t => new TranslationEntry()
+                {
+                    Project = project,
+                    CorrelationId = t.CorrelationId,
+                    Source = t.Source,
+                    Target = t.Target,
+                    Highlight = null
+                }) ?? Array.Empty<TranslationEntry>();
 
             if (search != null)
             {
@@ -68,7 +101,55 @@ namespace DidacticalEnigma.Mem.Pages
                     null,
                     100);
 
-                Translations = result.Value?.Translations ?? Array.Empty<QueryTranslationResult>();
+                Translations = (result.Value?.Translations ?? Array.Empty<QueryTranslationResult>())
+                    .Select(t => new TranslationEntry()
+                    {
+                        Project = t.ProjectName,
+                        CorrelationId = t.CorrelationId,
+                        Source = t.Source,
+                        Target = t.Target,
+                        Highlight = t.HighlighterSequence
+                    });
+            }
+        }
+
+        public async Task<ActionResult> OnPost(string action, string project, string? search, string invited)
+        {
+            if (action != "invitation")
+            {
+                return RedirectToPage(new
+                {
+                    project = project,
+                    search = search
+                });
+            }
+
+            var userName = this.Request.GetUserName();
+
+            var result = await this.sendInvitationHandler.Send(
+                userName,
+                project,
+                invited);
+
+            if (result.Error == null)
+            {
+                return RedirectToPage(new
+                {
+                    project = project,
+                    search = search,
+                    inviteMessage = "Successfully sent an invite!",
+                    inviteError = null as string
+                });
+            }
+            else
+            {
+                return RedirectToPage(new
+                {
+                    project = project,
+                    search = search,
+                    inviteMessage = null as string,
+                    inviteError = result.Error.Message
+                });
             }
         }
     }

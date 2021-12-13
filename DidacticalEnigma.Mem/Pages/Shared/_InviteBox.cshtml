@@ -1,0 +1,17 @@
+﻿@using DidacticalEnigma.Mem.Extensions
+@using DidacticalEnigma.Mem.Models
+@model InviteBoxModel
+
+<li xmlns="http://www.w3.org/1999/html"><i>@Model.User</i> invites you to collaborate on the project <i>@Model.Project</i>
+<div class="d-grid gap-2 d-sm-flex">
+    <form method="post" asp-page="/InvitationAccepted">
+        <input type="hidden" value="@Model.Project" name="project" />
+        <input type="hidden" value="@Model.User" name="user" />
+        <button type="submit" class="btn btn-primary btn-lg px-4 gap-3">Accept</button>
+    </form>
+    <form method="post" asp-page="/InvitationRejected">
+        <input type="hidden" value="@Model.Project" name="project" />
+        <input type="hidden" value="@Model.User" name="user" />
+        <button type="submit" class="btn btn-outline-secondary btn-lg px-4">Ignore</button>
+    </form>
+</div>

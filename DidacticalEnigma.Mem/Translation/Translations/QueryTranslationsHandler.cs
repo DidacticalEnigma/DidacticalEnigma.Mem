@@ -37,7 +37,8 @@ namespace DidacticalEnigma.Mem.Translation.Translations
             string? queryText,
             string? category,
             string? paginationToken = null,
-            int? limit = null)
+            int? limit = null,
+            bool translatedOnly = false)
         {
             if (projectName == null && correlationIdStart == null && queryText == null && category == null)
             {
@@ -61,11 +62,18 @@ namespace DidacticalEnigma.Mem.Translation.Translations
                     || translation.Parent.Owner.UserName == userName
                     || translation.Parent.Contributors.Any(contributor => contributor.User.UserName == userName));
             }
-            
-            if(projectName != null)
+
+            if (projectName != null)
+            {
                 translations = translations.Where(translationPair => translationPair.Parent.Name == projectName);
-            if(correlationIdStart != null)
-                translations = translations.Where(translationPair => translationPair.CorrelationId.StartsWith(correlationIdStart));
+            }
+
+            if (correlationIdStart != null)
+            {
+                translations = translations.Where(translationPair =>
+                    translationPair.CorrelationId.StartsWith(correlationIdStart));
+            }
+
             if (queryText != null)
             {
                 var normalized = analyzer.Normalize(queryText);
@@ -73,8 +81,17 @@ namespace DidacticalEnigma.Mem.Translation.Translations
                     translationPair.SearchVector.Matches(
                         EF.Functions.PhraseToTsQuery("simple", normalized)));
             }
+
             if (category != null)
-                translations = translations.Where(translationPair => translationPair.Category != null && translationPair.Category.Name == category);
+            {
+                translations = translations.Where(translationPair =>
+                    translationPair.Category != null && translationPair.Category.Name == category);
+            }
+            
+            if (translatedOnly)
+            {
+                translations = translations.Where(translationPair => translationPair.Target != null);
+            }
 
             if (paginationToken != null)
             {
