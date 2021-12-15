@@ -1,6 +1,6 @@
 namespace DidacticalEnigma.Mem.Pages.Shared
 {
-    public class InviteBoxModel
+    public class InvitationSendingBox
     {
         public string Project { get; init; }
         

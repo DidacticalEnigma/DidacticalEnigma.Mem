@@ -40,10 +40,10 @@
                         <p>Untranslated lines:</p>
                         @await Html.PartialAsync("Shared/_TranslationsBox", Model.Untranslated)
                     }
-                    @if (Model.Project.Owner == Request.GetUserName())
+                    @if (Model.IsContributor && Model.Project.Owner == Request.GetUserName())
                     {
                         <section>
-                            <form id="contributor-invitation" method="post">
+                            <form method="post">
                                 <input type="hidden" name="action" value="invitation"/>
                                 <input type="hidden" name="project" value="@Model.Project.ProjectName"/>
                                 <input type="hidden" name="search" value="@Model.SearchText"/>

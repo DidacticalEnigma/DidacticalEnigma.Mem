@@ -42,10 +42,7 @@ namespace DidacticalEnigma.Mem.Pages
             }
             else
             {
-                return RedirectToPage(new
-                {
-                    message = "Invitation accepted"
-                });
+                return RedirectToPage("/Index");
             }
             
         }

@@ -1,0 +1,20 @@
+﻿@using DidacticalEnigma.Mem.Extensions
+@using DidacticalEnigma.Mem.Models
+@model InvitationSendingBox
+
+<section>
+    <form method="post">
+        <input type="hidden" name="action" value="invitation"/>
+        <input type="hidden" name="project" value="@Model.Project"/>
+        <input type="hidden" name="search" value="@Model"/>
+        <div class="form-floating">
+            <input id="search-box" name="invited" class="form-control" aria-required="true"/>
+            <label for="search-box" class="form-label">User to invite</label>
+            <span class="text-danger">@Model</span>
+            <span class="text-success">@Model</span>
+        </div>
+        <div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Send an invitation</button>
+        </div>
+    </form>
+</section>

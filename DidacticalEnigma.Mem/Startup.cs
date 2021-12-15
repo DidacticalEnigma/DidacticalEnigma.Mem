@@ -167,6 +167,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
             services.AddScoped<AcceptInvitationHandler>();
             services.AddScoped<RejectInvitationHandler>();
             services.AddScoped<CancelInvitationHandler>();
+            services.AddScoped<RemoveContributorHandler>();
             services.AddScoped<QueryProjectShowcaseHandler>();
 
             if (quartzConfiguration.EnableQuartz)
@@ -213,7 +214,8 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                         .SetAuthorizationEndpointUris("/connect/authorize")
                         .SetLogoutEndpointUris("/connect/logout")
                         .SetTokenEndpointUris("/connect/token")
-                        .SetUserinfoEndpointUris("/connect/userinfo");
+                        .SetDeviceEndpointUris("/connect/device")
+                        .SetVerificationEndpointUris("/connect/verify");
                     
                     options.RegisterScopes(
                         OpenIddictConstants.Scopes.Email,
@@ -222,6 +224,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                     
                     options
                         .AllowAuthorizationCodeFlow()
+                        .AllowDeviceCodeFlow()
                         .AllowRefreshTokenFlow();
                     
                     options
@@ -233,6 +236,7 @@ Each translation unit has a correlation id, which can store an identifier, uniqu
                         .EnableAuthorizationEndpointPassthrough()
                         .EnableLogoutEndpointPassthrough()
                         .EnableStatusCodePagesIntegration()
+                        .EnableVerificationEndpointPassthrough()
                         .EnableTokenEndpointPassthrough();
                 })
                 .AddValidation(options =>
