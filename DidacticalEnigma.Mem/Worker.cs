@@ -43,6 +43,27 @@ namespace DidacticalEnigma.Mem
                     }
                 });
             }
+            
+            if (await manager.FindByClientIdAsync("MemImporter") is null)
+            {
+                await manager.CreateAsync(new OpenIddictApplicationDescriptor
+                {
+                    ClientId = "MemImporter",
+                    ConsentType = ConsentTypes.Explicit,
+                    DisplayName = "MemImporter",
+                    Type = ClientTypes.Public,
+                    Permissions =
+                    {
+                        Permissions.GrantTypes.DeviceCode,
+                        Permissions.GrantTypes.RefreshToken,
+                        Permissions.Endpoints.Device,
+                        Permissions.Endpoints.Token,
+                        Permissions.Scopes.Email,
+                        Permissions.Scopes.Profile,
+                        Permissions.Scopes.Roles,
+                    }
+                });
+            }
 
         }
 
