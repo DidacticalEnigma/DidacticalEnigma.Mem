@@ -19,15 +19,18 @@ namespace DidacticalEnigma.Mem.Pages
         private readonly QueryProjectShowcaseHandler queryProjectShowcaseHandler;
         private readonly SendInvitationHandler sendInvitationHandler;
         private readonly QueryTranslationsHandler queryTranslationsHandler;
+        private readonly AddProjectHandler addProjectHandler;
 
         public ProjectModel(
             QueryProjectShowcaseHandler queryProjectShowcaseHandler,
             SendInvitationHandler sendInvitationHandler,
-            QueryTranslationsHandler queryTranslationsHandler)
+            QueryTranslationsHandler queryTranslationsHandler,
+            AddProjectHandler addProjectHandler)
         {
             this.queryProjectShowcaseHandler = queryProjectShowcaseHandler;
             this.sendInvitationHandler = sendInvitationHandler;
             this.queryTranslationsHandler = queryTranslationsHandler;
+            this.addProjectHandler = addProjectHandler;
         }
 
         public string ProjectTitle => Project?.ProjectName != null
@@ -113,43 +116,25 @@ namespace DidacticalEnigma.Mem.Pages
             }
         }
 
-        public async Task<ActionResult> OnPost(string action, string project, string? search, string invited)
+        public async Task<ActionResult> OnPost(string projectName)
         {
-            if (action != "invitation")
-            {
-                return RedirectToPage(new
-                {
-                    project = project,
-                    search = search
-                });
-            }
-
             var userName = this.Request.GetUserName();
 
-            var result = await this.sendInvitationHandler.Send(
+            var result = await this.addProjectHandler.Add(
                 userName,
-                project,
-                invited);
+                projectName,
+                true);
 
             if (result.Error == null)
             {
-                return RedirectToPage(new
+                return RedirectToPage("/Project", new
                 {
-                    project = project,
-                    search = search,
-                    inviteMessage = "Successfully sent an invite!",
-                    inviteError = null as string
+                    project = projectName
                 });
             }
             else
             {
-                return RedirectToPage(new
-                {
-                    project = project,
-                    search = search,
-                    inviteMessage = null as string,
-                    inviteError = result.Error.Message
-                });
+                return RedirectToPage("/Index");
             }
         }
     }

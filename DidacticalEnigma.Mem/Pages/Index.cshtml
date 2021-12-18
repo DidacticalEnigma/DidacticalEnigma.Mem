@@ -11,26 +11,38 @@
 
 @if (SignInManager.IsSignedIn(User))
 {
-    <div>
-        <p>List of projects:</p>
-        <ul>
-            @foreach (var project in Model.Projects)
-            {
-                <li><a asp-area="" asp-route-project="@project.Name" asp-page="/Project">@project.Name</a> by <i>@project.Owner</i></li>
-            }
-        </ul>
-
-        <p>List of invitations:</p>
-        <ul>
-            @foreach (var invitation in Model.Invitations)
-            {
-                @await Html.PartialAsync("Shared/_InvitationReceiveBox", new InvitationReceiveBoxModel()
+    <div class="row">
+        <div class="col-md-5">
+            <p>List of projects:</p>
+            <ul>
+                @foreach (var project in Model.Projects)
                 {
-                    Project = invitation.ProjectName,
-                    User = invitation.InvitingUser
-                })
-            }
-        </ul>
+                    <li><a asp-area="" asp-route-project="@project.Name" asp-page="/Project">@project.Name</a> by <i>@project.Owner</i></li>
+                }
+            </ul>
+
+            <form method="post" asp-page="/Project">
+                <div class="form-floating">
+                    <input id="project-name" name="projectName" class="form-control" aria-required="true"/>
+                    <label for="project-name" class="form-label">Project to create</label>
+                </div>
+                <div>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Create Project</button>
+                </div>
+            </form>
+
+            <p>List of invitations:</p>
+            <ul>
+                @foreach (var invitation in Model.Invitations)
+                {
+                    @await Html.PartialAsync("Shared/_InvitationReceiveBox", new InvitationReceiveBoxModel()
+                    {
+                        Project = invitation.ProjectName,
+                        User = invitation.InvitingUser
+                    })
+                }
+            </ul>
+        </div>
     </div>
 }
 else
