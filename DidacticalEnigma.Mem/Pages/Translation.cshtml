@@ -9,13 +9,17 @@
     ViewData["Title"] = Model.PageTitle;
 }
 
-@if (Model.Translation != null)
-{
-    <div class="row">
-        <div class="col-md-4">
-            <section>
-                <h2><a asp-area="" asp-page="/Project" asp-route-project="@Model.Translation.ProjectName">@Model.ProjectTitle</a></h2>
-                @Model.Translation.CorrelationId
+<div class="row">
+    <div class="col-md-4">
+        <section>
+            <h2><a asp-area="" asp-page="/Project" asp-route-project="@Model.RequestedProjectName">@Model.RequestedProjectName</a></h2>
+            @foreach (var component in @Model.CorrelationIdComponents)
+            {
+                {@("/")<a asp-area="" asp-page="/Translation" asp-route-project="@Model.RequestedProjectName" asp-route-translation="@component.Value">@component.Key</a>}
+            }
+
+            @if (Model.Translation != null)
+            {
                 <p class="multiline">@Model.Translation.Source</p>
 
                 <p class="multiline">@Model.Translation.Target</p>
@@ -35,20 +39,23 @@
                         <li>@note.Foreign : @note.Explanation</li>
                     }
                 </ul>
-            </section>
-        </div>
-        <div class="col-md-6 col-md-offset-2">
-            <section>
-                @if (Model.Context?.HasData == true &&
-                     MimeExtensions.IsImage(Model.Context?.MediaType))
-                {
-                    <img class="img-fluid" alt="Image Context for @Model.Context?.CorrelationId" src="@Model.ContextDataLink"/>
-                }
-            </section>
-        </div>
+            }
+
+            @await Html.PartialAsync("Shared/_TranslationsBox", Model.Children)
+
+            @if (Model.PaginationToken != null)
+            {
+                <a asp-area="" asp-page="/Translation" asp-route-project="@Model.RequestedProjectName" asp-route-translation="@Model.RequestedTranslation" asp-route-paginationToken="@Model.PaginationToken">More</a>
+            }
+        </section>
     </div>
-}
-else
-{
-    <h2>Translation not found</h2>
-}
+    <div class="col-md-6 col-md-offset-2">
+        <section>
+            @if (Model.Context?.HasData == true &&
+                 MimeExtensions.IsImage(Model.Context?.MediaType))
+            {
+                <img class="img-fluid" alt="Image Context for @Model.Context?.CorrelationId" src="@Model.ContextDataLink"/>
+            }
+        </section>
+    </div>
+</div>
